@@ -1,0 +1,9 @@
+{
+  "id": "power",
+  "title": "Potencia propulsiva",
+  "category": "Física",
+  "difficulty": 2,
+  "graphId": "power_curve",
+  "relatedScenario": "7. Efecto Venturi",
+  "description": "La potencia mide cuán rápido el motor transfiere energía mecánica al sistema. Es clave para comparar rendimiento a favor o en contra del flujo."
+}

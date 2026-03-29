@@ -1,0 +1,9 @@
+{
+  "id": "euler",
+  "title": "Método de Euler",
+  "category": "Métodos numéricos",
+  "difficulty": 2,
+  "graphId": "euler_vs_exact",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "Euler aproxima el siguiente estado usando solamente la pendiente actual. Es rápido, pero su error crece con facilidad si el paso temporal es grande."
+}

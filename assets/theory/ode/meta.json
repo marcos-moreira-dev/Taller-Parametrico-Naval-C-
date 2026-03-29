@@ -1,0 +1,9 @@
+{
+  "id": "ode",
+  "title": "Ecuaciones diferenciales ordinarias",
+  "category": "Ecuaciones diferenciales",
+  "difficulty": 3,
+  "graphId": "ode_parabola",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "La posición y la velocidad del bote cambian en el tiempo. Esas tasas de cambio se escriben como ecuaciones diferenciales ordinarias."
+}

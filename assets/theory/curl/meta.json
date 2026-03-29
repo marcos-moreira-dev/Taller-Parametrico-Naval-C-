@@ -1,0 +1,9 @@
+{
+  "id": "curl",
+  "title": "Rotor (curl)",
+  "category": "Cálculo multivariable",
+  "difficulty": 5,
+  "graphId": "curl_field",
+  "relatedScenario": "2. Remolino central",
+  "description": "El rotor mide la tendencia del flujo a hacer girar una partícula material alrededor de su propio centro. Es la medida local de vorticidad en 2D."
+}

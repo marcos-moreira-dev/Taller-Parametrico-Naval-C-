@@ -1,0 +1,7 @@
+#include <windows.h>
+
+// Icono de la aplicación
+// IDI_ICON1 ICON "resources/icon.ico"
+
+// Manifest para controles visuales modernos de Windows
+1 RT_MANIFEST "TallerParametrico.exe.manifest"

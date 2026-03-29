@@ -1,0 +1,19 @@
+{
+  "topics": [
+    "vector_fields",
+    "ode",
+    "euler",
+    "heun",
+    "rk4",
+    "forces",
+    "radial_field",
+    "rotational_field",
+    "energy_work",
+    "power",
+    "trajectories",
+    "line_integral",
+    "circulation",
+    "divergence",
+    "curl"
+  ]
+}

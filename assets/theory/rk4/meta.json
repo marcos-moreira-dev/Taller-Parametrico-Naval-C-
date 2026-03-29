@@ -1,0 +1,9 @@
+{
+  "id": "rk4",
+  "title": "Método de Runge-Kutta de orden 4",
+  "category": "Métodos numéricos",
+  "difficulty": 4,
+  "graphId": "rk4_decay",
+  "relatedScenario": "2. Remolino central",
+  "description": "RK4 usa cuatro evaluaciones de la derivada por paso. Es más costoso que Euler, pero mucho más estable para trayectorias largas y campos curvos."
+}

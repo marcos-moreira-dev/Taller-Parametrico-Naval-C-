@@ -1,0 +1,34 @@
+{
+  "name": "Remolino Central",
+  "description": "Un remolino rotacional en el centro del mapa. Demuestra el comportamiento de trayectorias circulares y la circulacion del campo vectorial.",
+  "version": "1.0",
+  "width": 50,
+  "height": 50,
+  "field": {
+    "type": "rotational",
+    "params": {
+      "centerX": 25.0,
+      "centerY": 25.0,
+      "strength": 1.0
+    }
+  },
+  "boat": {
+    "position": { "x": 25.0, "y": 10.0 },
+    "velocity": { "x": 0.0, "y": 0.0 },
+    "orientation": 1.57,
+    "mass": 1.0,
+    "dragCoefficient": 0.1
+  },
+  "motor": {
+    "type": "constant",
+    "params": {
+      "magnitude": 3.0,
+      "direction": 1.57
+    }
+  },
+  "simulation": {
+    "timeStep": 0.01,
+    "maxTime": 20.0,
+    "method": "RK4"
+  }
+}

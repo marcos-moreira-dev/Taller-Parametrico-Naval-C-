@@ -1,0 +1,6 @@
+ninja_required_version = 1.5
+
+rule compile
+  command = C:/msys64/mingw64/bin/c++.exe -c $in -o $out
+
+build test.o: compile test.cpp

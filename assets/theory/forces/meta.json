@@ -1,0 +1,9 @@
+{
+  "id": "forces",
+  "title": "Composición de velocidades y fuerzas",
+  "category": "Física",
+  "difficulty": 2,
+  "graphId": "vector_sum",
+  "relatedScenario": "3. Canal con obstáculo",
+  "description": "El movimiento observado surge de sumar motor, corriente, arrastre y, en modelos más ricos, sustentación. La mecánica del sistema es vectorial."
+}

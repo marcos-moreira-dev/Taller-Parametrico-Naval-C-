@@ -1,0 +1,9 @@
+{
+  "id": "circulation",
+  "title": "Circulación",
+  "category": "Cálculo multivariable",
+  "difficulty": 5,
+  "graphId": "circulation_loop",
+  "relatedScenario": "2. Remolino central",
+  "description": "La circulación es la integral de línea de un campo alrededor de una curva cerrada. Mide la tendencia global del flujo a rodear una región."
+}

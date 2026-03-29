@@ -1,0 +1,9 @@
+{
+  "id": "divergence",
+  "title": "Divergencia",
+  "category": "Cálculo multivariable",
+  "difficulty": 4,
+  "graphId": "divergence_source",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "La divergencia mide si el flujo local se abre como una fuente o se cierra como un sumidero. En agua casi siempre idealizada como incompresible, se busca divergencia cercana a cero."
+}

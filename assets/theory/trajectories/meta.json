@@ -1,0 +1,9 @@
+{
+  "id": "trajectories",
+  "title": "Trayectorias y curvas paramétricas",
+  "category": "Geometría",
+  "difficulty": 3,
+  "graphId": "parametric_curve",
+  "relatedScenario": "2. Remolino central",
+  "description": "Una trayectoria es una curva paramétrica. El tiempo no se dibuja en el plano, pero organiza el orden en que el vehículo visita cada punto."
+}

@@ -1,0 +1,58 @@
+# Binarios y builds
+/build/
+/build2/
+/build3/
+/build4/
+/build5/
+/build_quality/
+/build_complete/
+/out/
+/manual_build/
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# vcpkg
+vcpkg_installed/
+
+# Assets generados
+/assets/temp/
+
+# Logs
+*.log
+/logs/
+
+# Toolchains locales
+/wxwidgets/
+/wx_installed/
+/lib/
+/libs/
+
+# Configuracion local
+config.ini
+.env

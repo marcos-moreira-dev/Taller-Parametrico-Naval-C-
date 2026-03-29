@@ -1,0 +1,9 @@
+{
+  "id": "line_integral",
+  "title": "Integral de línea",
+  "category": "Cálculo multivariable",
+  "difficulty": 4,
+  "graphId": "line_integral_paths",
+  "relatedScenario": "3. Canal con obstáculo",
+  "description": "La integral de línea mide el efecto acumulado de un campo a lo largo de una ruta. En mecánica aparece como trabajo sobre una trayectoria dada."
+}

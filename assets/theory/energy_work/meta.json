@@ -1,0 +1,9 @@
+{
+  "id": "energy_work",
+  "title": "Energía cinética y trabajo",
+  "category": "Física",
+  "difficulty": 2,
+  "graphId": "energy_curve",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "El motor entrega trabajo positivo, el arrastre suele hacer trabajo negativo y la corriente puede sumar o quitar energía al sistema según la trayectoria."
+}

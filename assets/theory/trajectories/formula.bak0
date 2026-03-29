@@ -1,0 +1,5 @@
+\begin{aligned}
+\mathbf{r}(t) &= \bigl(x(t), y(t)\bigr) \\
+\mathbf{v}(t) &= \frac{d\mathbf{r}}{dt} \\
+\mathbf{a}(t) &= \frac{d\mathbf{v}}{dt}
+\end{aligned}

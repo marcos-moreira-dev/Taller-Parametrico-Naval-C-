@@ -1,0 +1,9 @@
+{
+  "id": "rotational_field",
+  "title": "Campo rotacional",
+  "category": "Cálculo multivariable",
+  "difficulty": 4,
+  "graphId": "rotational_field",
+  "relatedScenario": "2. Remolino central",
+  "description": "En un campo rotacional las flechas son tangenciales a circunferencias alrededor de un centro. Es el modelo más simple de un remolino 2D."
+}

@@ -1,0 +1,1 @@
+\mathbf{V}(x,y)=\bigl(P(x,y), Q(x,y)\bigr),\qquad \|\mathbf{V}\|=\sqrt{P(x,y)^2+Q(x,y)^2}

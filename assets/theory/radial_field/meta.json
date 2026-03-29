@@ -1,0 +1,9 @@
+{
+  "id": "radial_field",
+  "title": "Campo radial",
+  "category": "Cálculo multivariable",
+  "difficulty": 3,
+  "graphId": "radial_source",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "En un campo radial, las flechas apuntan hacia afuera o hacia adentro de un centro. Modela fuentes, sumideros o aproximaciones simplificadas de empuje alrededor de un punto."
+}

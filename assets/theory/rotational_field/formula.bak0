@@ -1,0 +1,4 @@
+\begin{aligned}
+\mathbf{V}(x,y) &= \omega\bigl(-(y-c_y),\, x-c_x\bigr) \\
+\lVert \mathbf{V} \rVert &= |\omega|r
+\end{aligned}

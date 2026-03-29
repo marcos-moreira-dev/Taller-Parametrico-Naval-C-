@@ -1,0 +1,5 @@
+\begin{aligned}
+\frac{dx}{dt} &= v_x \\
+\frac{dy}{dt} &= v_y \\
+m\frac{d\mathbf{v}}{dt} &= \mathbf{F}_{\text{total}}
+\end{aligned}

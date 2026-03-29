@@ -1,0 +1,9 @@
+{
+  "id": "vector_fields",
+  "title": "Campos vectoriales",
+  "category": "Cálculo multivariable",
+  "difficulty": 2,
+  "graphId": "uniform_field",
+  "relatedScenario": "1. Río con corriente uniforme",
+  "description": "Un campo vectorial asigna una velocidad o una fuerza a cada punto del plano. En este taller representa la corriente que empuja al bote en cada posición."
+}

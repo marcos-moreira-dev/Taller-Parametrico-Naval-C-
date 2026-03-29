@@ -1,0 +1,34 @@
+{
+  "name": "Rio con Corriente Uniforme",
+  "description": "Escenario de ejemplo con un rio que fluye de izquierda a derecha. El bote debe navegar contra la corriente o aprovecharla segun la estrategia.",
+  "version": "1.0",
+  "width": 50,
+  "height": 30,
+  "cells": [],
+  "field": {
+    "type": "uniform",
+    "params": {
+      "vx": 2.0,
+      "vy": 0.0
+    }
+  },
+  "boat": {
+    "position": { "x": 5.0, "y": 15.0 },
+    "velocity": { "x": 0.0, "y": 0.0 },
+    "orientation": 0.0,
+    "mass": 1.0,
+    "dragCoefficient": 0.1
+  },
+  "motor": {
+    "type": "constant",
+    "params": {
+      "magnitude": 5.0,
+      "direction": 0.0
+    }
+  },
+  "simulation": {
+    "timeStep": 0.01,
+    "maxTime": 10.0,
+    "method": "Euler"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "heun",
+  "title": "Método de Heun (Euler mejorado)",
+  "category": "Métodos numéricos",
+  "difficulty": 3,
+  "graphId": "heun_exp",
+  "relatedScenario": "2. Remolino central",
+  "description": "Heun mejora Euler promediando la pendiente al inicio y al final del paso. Es un buen compromiso entre costo y precisión."
+}
