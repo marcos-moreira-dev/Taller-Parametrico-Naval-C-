@@ -17,3 +17,8 @@ add_test(NAME TestBoat COMMAND test_boat)
 add_executable(test_motor test_motor.cpp)
 target_link_libraries(test_motor PRIVATE tp_domain)
 add_test(NAME TestMotor COMMAND test_motor)
+
+# Test: Boat Extended (conservación de energía, límites, torque)
+add_executable(test_boat_extended test_boat_extended.cpp)
+target_link_libraries(test_boat_extended PRIVATE tp_domain tp_shared)
+add_test(NAME TestBoatExtended COMMAND test_boat_extended)

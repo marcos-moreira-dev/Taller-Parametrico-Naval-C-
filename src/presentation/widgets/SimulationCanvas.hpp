@@ -289,10 +289,82 @@ private:
      */
     wxPoint worldToScreen(double x, double y);
     
-    // Datos a renderizar (punteros, no toma propiedad)
+    // ============================================================
+    // DATOS A RENDERIZAR - Patrón Observer (Non-Owning Pointers)
+    // ============================================================
+    
+    /**
+     * @defgroup observer_pointers Punteros Observadores (Non-Owning)
+     * @brief Estos punteros implementan el patrón Observer sin ownership
+     * 
+     * @details USO DE PUNTEROS CRUDOS EN C++ MODERNO:
+     * 
+     * En C++ moderno (C++11/14/17/20) generalmente preferimos smart pointers:
+     * - std::unique_ptr: Ownership exclusivo (1 dueño)
+     * - std::shared_ptr: Ownership compartido (contador de referencias)
+     * 
+     * Sin embargo, hay un caso legítimo para punteros crudos (raw pointers):
+     * cuando implementamos el patrón OBSERVER (Observador).
+     * 
+     * PATRÓN OBSERVER EN ESTE CONTEXTO:
+     * - SimulationCanvas OBSERVA objetos que viven en otro lugar
+     * - NO es dueño de estos objetos (no los crea ni destruye)
+     * - Solo los usa temporalmente para renderizado
+     * - El dueño real es MainWindow/ExperimentService (capa Application)
+     * 
+     * ¿Por qué no std::shared_ptr?
+     * 1. Overhead: Contador de referencias innecesario para observación
+     * 2. Ciclos: Podríamos crear referencias circulares accidentalmente
+     * 3. Semántica: shared_ptr implica "compartir ownership", no "observar"
+     * 
+     * ¿Por qué no std::observer_ptr (C++20)?
+     * - Es experimental en muchas implementaciones
+     * - No añade safety en runtime, solo claridad semántica
+     * - El proyecto usa punteros crudos documentados desde el inicio
+     * 
+     * ALTERNATIVAS CONSIDERADAS:
+     * - std::weak_ptr: Para evitar ciclos con shared_ptr (overhead innecesario)
+     * - Referencias (&): No permiten null (íbamos a necesitar optional<T&>)
+     * - std::optional<std::reference_wrapper<T>>: Verbose, poco idiomático
+     * 
+     * DECISIÓN: Mantener punteros crudos con documentación explícita
+     * y null-checks defensivos en todos los métodos de acceso.
+     * 
+     * @see https://en.cppreference.com/w/cpp/memory (smart pointers)
+     * @see https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#S-owning
+     * 
+     * @pre Los objetos apuntados deben permanecer válidos durante todo el
+     *      tiempo que SimulationCanvas los use (lifetime requirement)
+     * @warning El llamador es responsable de notificar al canvas si los
+     *          objetos se destruyen (llamando a setXxx(nullptr))
+     * @invariant scenario_, field_, boat_, particleSystem_ pueden ser nullptr
+     *            y el código debe manejar este caso gracefulmente
+     */
+    
+    /// @{
+    /// @memberof observer_pointers
+    
+    /**
+     * @brief Escenario a renderizar (observador, no propietario)
+     * @invariant Puede ser nullptr (canvas sin escenario asignado)
+     * @note Seteado por setScenario(), típicamente desde MainWindow
+     */
     tp::domain::Scenario* scenario_;
+    
+    /**
+     * @brief Campo vectorial a visualizar (observador, no propietario)
+     * @invariant Puede ser nullptr (campo no visible o no asignado)
+     * @note El campo puede cambiar dinámicamente durante la simulación
+     */
     tp::domain::VectorField* field_;
+    
+    /**
+     * @brief Bote a renderizar (observador, no propietario)
+     * @invariant Puede ser nullptr (sin bote en modo editor puro)
+     * @note La posición del bote se actualiza cada frame desde el runner
+     */
     tp::domain::Boat* boat_;
+    /// @}
     
     // Transformación
     double scale_;          ///< Pixels por metro
@@ -311,12 +383,37 @@ private:
     double boatX_;
     double boatY_;
     
-    // Sistema de partículas
-    WaterParticleSystem* particleSystem_;
-    bool showWaterEffects_;
-    double lastBoatSpeed_;
+    /// @{
+    /// @memberof observer_pointers
     
-    // Sistema de animación de agua (flujo)
+    /**
+     * @brief Sistema de partículas de agua/espuma (observador, no propietario)
+     * @invariant Puede ser nullptr (efectos desactivados o no inicializados)
+     * @note El sistema de partículas es creado y destruido por MainWindow
+     *       para permitir compartir el mismo sistema entre canvas 2D y 3D
+     */
+    WaterParticleSystem* particleSystem_;
+    
+    /// @}
+    
+    bool showWaterEffects_;     ///< Estado de visibilidad de efectos de agua
+    double lastBoatSpeed_;      ///< Velocidad anterior para detección de cambios
+    
+    /**
+     * @brief Sistema de animación de flujo de agua (propiedad exclusiva)
+     * @details A diferencia de los punteros anteriores, este SÍ es owned.
+     *          Usamos std::unique_ptr porque:
+     *          1. El sistema de animación es específico del canvas 2D
+     *          2. No necesita ser compartido con otros componentes
+     *          3. Su lifetime está acoplado al del canvas
+     * 
+     * @note El constructor único de unique_ptr asegura que solo el canvas
+     *       pueda destruir este objeto, previniendo double-free bugs.
+     * 
+     * @see std::unique_ptr - https://en.cppreference.com/w/cpp/memory/unique_ptr
+     * @see RAII (Resource Acquisition Is Initialization) - técnica fundamental
+     *      de C++ para gestión automática de recursos
+     */
     std::unique_ptr<WaterAnimationSystem> waterAnimation_;
     bool showWaterFlow_;
     

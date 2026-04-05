@@ -44,6 +44,8 @@ struct FieldConfigView {
     double intensity = 0.0;
     double centerX = 25.0;
     double centerY = 25.0;
+    std::string customFx = "0";
+    std::string customFy = "0";
 };
 
 /**
@@ -162,6 +164,8 @@ public:
      * Notifica a todos los observadores del cambio.
      */
     void setField(const VectorField& field);
+    void setFieldView(const FieldConfigView& fieldView);
+    bool rebuildFieldFromView(std::string* errorMessage = nullptr);
     
     /**
      * @brief Actualiza el bateau

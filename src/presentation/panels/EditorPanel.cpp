@@ -68,6 +68,7 @@ EditorPanel::EditorPanel(wxWindow* parent, MainWindow* mainWindow)
     , widthCtrl_(nullptr)
     , heightCtrl_(nullptr)
     , nameCtrl_(nullptr)
+    , scenarioInfoText_(nullptr)
     , fieldTypeChoice_(nullptr)
     , fieldIntensitySlider_(nullptr)
     , fieldCenterXCtrl_(nullptr)
@@ -75,6 +76,7 @@ EditorPanel::EditorPanel(wxWindow* parent, MainWindow* mainWindow)
 {
     SetBackgroundColour(wxColour(245, 245, 245));
     setupUI();
+    syncFromDocument();
     
     wxAcceleratorEntry entries[2];
     entries[0].Set(wxACCEL_CTRL, (int)'Z', ID_UNDO);
@@ -90,6 +92,12 @@ void EditorPanel::setupUI() {
     wxStaticText* title = new wxStaticText(this, wxID_ANY, wxT("EDITOR DE ESCENARIOS"));
     title->SetFont(wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
     mainSizer->Add(title, 0, wxALL, 10);
+
+    wxStaticText* subtitle = new wxStaticText(this, wxID_ANY,
+        wxT("Edita el escenario directamente sobre el canvas: elige una herramienta y haz clic o arrastra sobre la escena."));
+    subtitle->Wrap(360);
+    subtitle->SetForegroundColour(wxColour(70, 80, 95));
+    mainSizer->Add(subtitle, 0, wxLEFT | wxRIGHT | wxBOTTOM, 10);
     
     // Notebook para organizar secciones
     wxNotebook* notebook = new wxNotebook(this, wxID_ANY);
@@ -172,6 +180,22 @@ void EditorPanel::setupUI() {
     
     sizeGrid->Add(new wxStaticText(scenarioPanel, wxID_ANY, wxT("Nombre:")));
     nameCtrl_ = new wxTextCtrl(scenarioPanel, wxID_ANY, wxT("Mi Escenario"));
+    nameCtrl_->Bind(wxEVT_TEXT, [this](wxCommandEvent& event) {
+        if (!mainWindow_) {
+            event.Skip();
+            return;
+        }
+
+        auto& scenario = mainWindow_->getScenarioDocument().scenario();
+        const std::string newName = std::string(event.GetString().ToUTF8());
+        if (scenario.getName() != newName) {
+            scenario.setName(newName);
+            mainWindow_->setScenarioName(event.GetString());
+            mainWindow_->getScenarioDocument().notifyChanged();
+            mainWindow_->setModified(true);
+        }
+        event.Skip();
+    });
     sizeGrid->Add(nameCtrl_, 1, wxEXPAND);
     
     sizeGrid->Add(new wxStaticText(scenarioPanel, wxID_ANY, wxT("Ancho:")));
@@ -197,120 +221,97 @@ void EditorPanel::setupUI() {
     
     // Información del escenario
     wxStaticBoxSizer* infoBox = new wxStaticBoxSizer(wxVERTICAL, scenarioPanel, wxT("Información"));
-    infoBox->Add(new wxStaticText(scenarioPanel, wxID_ANY, 
-        wxT("Celdas de agua: 0\nCeldas de tierra: 0\nObstáculos: 0\nTamaño: 50x50")), 
-        0, wxALL, 5);
+    scenarioInfoText_ = new wxStaticText(scenarioPanel, wxID_ANY, wxEmptyString);
+    infoBox->Add(scenarioInfoText_, 0, wxALL, 5);
     scenarioSizer->Add(infoBox, 0, wxEXPAND | wxALL, 5);
     
     scenarioPanel->SetSizer(scenarioSizer);
     notebook->AddPage(scenarioPanel, wxT("Escenario"));
-    
-    // Pestaña: Campo
-    wxPanel* fieldPanel = new wxPanel(notebook);
-    wxBoxSizer* fieldSizer = new wxBoxSizer(wxVERTICAL);
-    
-    wxStaticBoxSizer* fieldTypeBox = new wxStaticBoxSizer(wxVERTICAL, fieldPanel, wxT("Tipo de Campo"));
-    
-    wxString fieldTypes[] = {
-        wxT("Ninguno"),
-        wxT("Uniforme"),
-        wxT("Lineal"),
-        wxT("Radial"),
-        wxT("Rotacional"),
-        wxT("Personalizado")
-    };
-    fieldTypeChoice_ = new wxChoice(fieldPanel, ID_FIELD_TYPE, wxDefaultPosition, wxDefaultSize, 6, fieldTypes);
-    fieldTypeChoice_->SetSelection(1); // Uniforme por defecto
-    fieldTypeBox->Add(fieldTypeChoice_, 0, wxEXPAND | wxALL, 5);
-    
-    fieldSizer->Add(fieldTypeBox, 0, wxEXPAND | wxALL, 5);
-    
-    wxStaticBoxSizer* fieldParamsBox = new wxStaticBoxSizer(wxVERTICAL, fieldPanel, wxT("Parámetros"));
-    
-    wxBoxSizer* intensitySizer = new wxBoxSizer(wxHORIZONTAL);
-    intensitySizer->Add(new wxStaticText(fieldPanel, wxID_ANY, wxT("Intensidad:")), 0, wxALIGN_CENTER_VERTICAL);
-    fieldIntensitySlider_ = new wxSlider(fieldPanel, ID_FIELD_INTENSITY, 50, 0, 100,
-                                         wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL | wxSL_LABELS);
-    intensitySizer->Add(fieldIntensitySlider_, 1, wxEXPAND | wxLEFT, 5);
-    fieldParamsBox->Add(intensitySizer, 0, wxEXPAND | wxALL, 5);
-    
-    wxFlexGridSizer* centerGrid = new wxFlexGridSizer(2, 5, 5);
-    centerGrid->AddGrowableCol(1);
-    centerGrid->Add(new wxStaticText(fieldPanel, wxID_ANY, wxT("Centro X:")));
-    fieldCenterXCtrl_ = new wxSpinCtrl(fieldPanel, ID_FIELD_CENTER_X, wxT("25"));
-    fieldCenterXCtrl_->SetRange(0, 200);
-    centerGrid->Add(fieldCenterXCtrl_, 1, wxEXPAND);
-    centerGrid->Add(new wxStaticText(fieldPanel, wxID_ANY, wxT("Centro Y:")));
-    fieldCenterYCtrl_ = new wxSpinCtrl(fieldPanel, ID_FIELD_CENTER_Y, wxT("25"));
-    fieldCenterYCtrl_->SetRange(0, 200);
-    centerGrid->Add(fieldCenterYCtrl_, 1, wxEXPAND);
-    fieldParamsBox->Add(centerGrid, 0, wxEXPAND | wxALL, 5);
-    
-    fieldSizer->Add(fieldParamsBox, 0, wxEXPAND | wxALL, 5);
-    
-    // Vista previa del campo
-    wxStaticBoxSizer* previewBox = new wxStaticBoxSizer(wxVERTICAL, fieldPanel, wxT("Vista Previa"));
-    previewBox->Add(new wxStaticText(fieldPanel, wxID_ANY, 
-        wxT("La vista previa se muestra en el canvas principal")), 0, wxALL, 5);
-    fieldSizer->Add(previewBox, 0, wxEXPAND | wxALL, 5);
-    
-    fieldPanel->SetSizer(fieldSizer);
-    notebook->AddPage(fieldPanel, wxT("Campo"));
     
     mainSizer->Add(notebook, 1, wxEXPAND | wxALL, 5);
     
     SetSizer(mainSizer);
 }
 
+void EditorPanel::syncFromDocument() {
+    auto* config = currentConfig();
+    if (!config) {
+        return;
+    }
+
+    if (widthCtrl_) widthCtrl_->SetValue(config->scenario.getWidth());
+    if (heightCtrl_) heightCtrl_->SetValue(config->scenario.getHeight());
+    if (nameCtrl_ && !nameCtrl_->HasFocus()) nameCtrl_->ChangeValue(wxString::FromUTF8(config->scenario.getName().c_str()));
+    if (fieldTypeChoice_) fieldTypeChoice_->SetSelection(static_cast<int>(config->fieldView.type) + 1);
+    if (fieldIntensitySlider_) fieldIntensitySlider_->SetValue(std::clamp(static_cast<int>(config->fieldView.intensity * 50.0), 0, 100));
+    if (fieldCenterXCtrl_) fieldCenterXCtrl_->SetValue(static_cast<int>(config->fieldView.centerX));
+    if (fieldCenterYCtrl_) fieldCenterYCtrl_->SetValue(static_cast<int>(config->fieldView.centerY));
+
+    if (scenarioInfoText_) {
+        int water = 0;
+        int land = 0;
+        int obstacles = 0;
+        for (int y = 0; y < config->scenario.getHeight(); ++y) {
+            for (int x = 0; x < config->scenario.getWidth(); ++x) {
+                switch (config->scenario.getCell(x, y)) {
+                    case tp::shared::CellType::Water: water++; break;
+                    case tp::shared::CellType::Land: land++; break;
+                    case tp::shared::CellType::Obstacle: obstacles++; break;
+                }
+            }
+        }
+        scenarioInfoText_->SetLabel(wxString::Format(
+            wxT("Celdas de agua: %d\nCeldas de tierra: %d\nObstáculos: %d\nTamaño: %dx%d"),
+            water, land, obstacles, config->scenario.getWidth(), config->scenario.getHeight()));
+    }
+}
+
 void EditorPanel::setCurrentTool(EditorTool tool) {
     currentTool_ = tool;
     
-    wxColour defaultBg(240, 240, 240);
-    wxColour selectedBg(100, 149, 237);
-    wxColour selectedFg(*wxWHITE);
-    
-    if (btnSelect_) btnSelect_->SetBackgroundColour(defaultBg);
-    if (btnWater_) btnWater_->SetBackgroundColour(defaultBg);
-    if (btnLand_) btnLand_->SetBackgroundColour(defaultBg);
-    if (btnObstacle_) btnObstacle_->SetBackgroundColour(defaultBg);
-    if (btnErase_) btnErase_->SetBackgroundColour(defaultBg);
-    if (btnBoat_) btnBoat_->SetBackgroundColour(defaultBg);
+    const wxColour neutralBg(245, 245, 245);
+    const wxColour waterBg(214, 233, 248);
+    const wxColour landBg(228, 215, 201);
+    const wxColour obstacleBg(214, 214, 214);
+    const wxColour accentBg(214, 240, 220);
+    const wxColour normalFg(20, 20, 20);
+
+    if (btnSelect_) { btnSelect_->SetBackgroundColour(neutralBg); btnSelect_->SetForegroundColour(normalFg); }
+    if (btnWater_)  { btnWater_->SetBackgroundColour(waterBg); btnWater_->SetForegroundColour(normalFg); }
+    if (btnLand_)   { btnLand_->SetBackgroundColour(landBg); btnLand_->SetForegroundColour(normalFg); }
+    if (btnObstacle_) { btnObstacle_->SetBackgroundColour(obstacleBg); btnObstacle_->SetForegroundColour(normalFg); }
+    if (btnErase_)  { btnErase_->SetBackgroundColour(neutralBg); btnErase_->SetForegroundColour(normalFg); }
+    if (btnBoat_)   { btnBoat_->SetBackgroundColour(neutralBg); btnBoat_->SetForegroundColour(normalFg); }
     
     switch (tool) {
         case EditorTool::Select:
             if (btnSelect_) {
-                btnSelect_->SetBackgroundColour(selectedBg);
-                btnSelect_->SetForegroundColour(selectedFg);
+                btnSelect_->SetBackgroundColour(accentBg);
             }
             break;
         case EditorTool::PaintWater:
             if (btnWater_) {
-                btnWater_->SetBackgroundColour(selectedBg);
-                btnWater_->SetForegroundColour(selectedFg);
+                btnWater_->SetBackgroundColour(accentBg);
             }
             break;
         case EditorTool::PaintLand:
             if (btnLand_) {
-                btnLand_->SetBackgroundColour(selectedBg);
-                btnLand_->SetForegroundColour(selectedFg);
+                btnLand_->SetBackgroundColour(accentBg);
             }
             break;
         case EditorTool::PlaceObstacle:
             if (btnObstacle_) {
-                btnObstacle_->SetBackgroundColour(selectedBg);
-                btnObstacle_->SetForegroundColour(selectedFg);
+                btnObstacle_->SetBackgroundColour(accentBg);
             }
             break;
         case EditorTool::Erase:
             if (btnErase_) {
-                btnErase_->SetBackgroundColour(selectedBg);
-                btnErase_->SetForegroundColour(selectedFg);
+                btnErase_->SetBackgroundColour(accentBg);
             }
             break;
         case EditorTool::PlaceBoat:
             if (btnBoat_) {
-                btnBoat_->SetBackgroundColour(selectedBg);
-                btnBoat_->SetForegroundColour(selectedFg);
+                btnBoat_->SetBackgroundColour(accentBg);
             }
             break;
     }
@@ -336,6 +337,105 @@ bool EditorPanel::isSnapToGrid() const {
         return snapCheck_->GetValue();
     }
     return true;
+}
+
+void EditorPanel::beginStroke() {
+    auto* config = currentConfig();
+    if (!config) {
+        return;
+    }
+
+    switch (currentTool_) {
+        case EditorTool::PaintWater:
+        case EditorTool::Erase:
+        case EditorTool::PaintLand:
+        case EditorTool::PlaceObstacle:
+            activeStroke_ = std::make_unique<PaintStrokeCommand>(config->scenario);
+            break;
+        default:
+            activeStroke_.reset();
+            break;
+    }
+}
+
+void EditorPanel::endStroke() {
+    if (activeStroke_ && !activeStroke_->isEmpty()) {
+        commandHistory_.pushExecutedCommand(std::move(activeStroke_));
+        mainWindow_->getScenarioDocument().notifyChanged();
+        mainWindow_->updateCanvas();
+    }
+    activeStroke_.reset();
+}
+
+void EditorPanel::applyToolAtCell(int x, int y) {
+    auto* config = currentConfig();
+    if (!config) {
+        return;
+    }
+
+    if (!config->scenario.isValidPosition(x, y)) {
+        return;
+    }
+
+    switch (currentTool_) {
+        case EditorTool::PaintWater:
+        case EditorTool::Erase:
+        case EditorTool::PaintLand:
+        case EditorTool::PlaceObstacle: {
+            tp::shared::CellType newType = tp::shared::CellType::Water;
+            if (currentTool_ == EditorTool::PaintLand) newType = tp::shared::CellType::Land;
+            if (currentTool_ == EditorTool::PlaceObstacle) newType = tp::shared::CellType::Obstacle;
+
+            const int radius = std::max(1, getBrushSize());
+            bool changed = false;
+            for (int cellY = y - radius + 1; cellY <= y + radius - 1; ++cellY) {
+                for (int cellX = x - radius + 1; cellX <= x + radius - 1; ++cellX) {
+                    if (!config->scenario.isValidPosition(cellX, cellY)) {
+                        continue;
+                    }
+                    const double dx = static_cast<double>(cellX - x);
+                    const double dy = static_cast<double>(cellY - y);
+                    if ((dx * dx + dy * dy) > static_cast<double>(radius * radius)) {
+                        continue;
+                    }
+
+                    const auto oldType = config->scenario.getCell(cellX, cellY);
+                    if (oldType == newType) {
+                        continue;
+                    }
+
+                    if (activeStroke_) {
+                        activeStroke_->addCell(cellX, cellY, newType, oldType);
+                        config->scenario.setCell(cellX, cellY, newType);
+                    } else {
+                        commandHistory_.executeCommand(
+                            std::make_unique<PaintCellCommand>(config->scenario, cellX, cellY, newType, oldType));
+                    }
+                    changed = true;
+                }
+            }
+
+            if (!changed) {
+                return;
+            }
+
+            if (!activeStroke_) {
+                mainWindow_->getScenarioDocument().notifyChanged();
+            }
+            mainWindow_->updateCanvas();
+            break;
+        }
+        case EditorTool::PlaceBoat:
+            if (mainWindow_->getScenarioDocument().placeBoat(tp::shared::Vec2d(x + 0.5, y + 0.5))) {
+                mainWindow_->updateCanvas();
+            }
+            break;
+        case EditorTool::Select:
+        case EditorTool::Fill:
+        case EditorTool::DefineField:
+        default:
+            break;
+    }
 }
 
 void EditorPanel::onToolSelect(wxCommandEvent& event) {
@@ -368,65 +468,93 @@ void EditorPanel::onSnapToggle(wxCommandEvent& event) {
     }
 }
 
+tp::application::ExperimentConfig* EditorPanel::currentConfig() const {
+    if (!mainWindow_) {
+        return nullptr;
+    }
+    return &mainWindow_->getScenarioDocument().config();
+}
+
+void EditorPanel::commitScenarioChange(const std::function<void(tp::application::ExperimentConfig&)>& mutation) {
+    if (!mainWindow_) {
+        return;
+    }
+    mutation(mainWindow_->getScenarioDocument().config());
+    mainWindow_->getScenarioDocument().notifyChanged();
+    mainWindow_->updateCanvas();
+}
+
+void EditorPanel::applyFieldControlsToConfig() {
+    if (!mainWindow_) {
+        return;
+    }
+
+    auto& fieldView = mainWindow_->getScenarioDocument().fieldView();
+    const int selection = fieldTypeChoice_ ? fieldTypeChoice_->GetSelection() : 1;
+    fieldView.type = static_cast<tp::application::FieldPresetType>(std::clamp(selection - 1, 0, 4));
+    fieldView.intensity = fieldIntensitySlider_ ? fieldIntensitySlider_->GetValue() / 50.0 : fieldView.intensity;
+    fieldView.centerX = fieldCenterXCtrl_ ? fieldCenterXCtrl_->GetValue() : fieldView.centerX;
+    fieldView.centerY = fieldCenterYCtrl_ ? fieldCenterYCtrl_->GetValue() : fieldView.centerY;
+    mainWindow_->getScenarioDocument().rebuildField();
+    mainWindow_->updateCanvas();
+}
+
 void EditorPanel::onNewScenario(wxCommandEvent& event) {
     (void)event;
-    if (mainWindow_) {
-        int width = widthCtrl_ ? widthCtrl_->GetValue() : 50;
-        int height = heightCtrl_ ? heightCtrl_->GetValue() : 50;
-        wxString name = nameCtrl_ ? nameCtrl_->GetValue() : wxT("Nuevo Escenario");
-        
-        auto& config = mainWindow_->getExperimentService().getConfig();
-        
+    int width = widthCtrl_ ? widthCtrl_->GetValue() : 50;
+    int height = heightCtrl_ ? heightCtrl_->GetValue() : 50;
+    wxString name = nameCtrl_ ? nameCtrl_->GetValue() : wxT("Nuevo Escenario");
+
+    commitScenarioChange([&](tp::application::ExperimentConfig& config) {
         config.scenario = tp::domain::Scenario(width, height);
-        
+        config.scenario.setName(std::string(name.ToUTF8()));
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
                 config.scenario.setCell(x, y, tp::shared::CellType::Water);
             }
         }
-        
         config.boat.setPosition(tp::shared::Vec2d(width / 2.0, height / 2.0));
         config.boat.setOrientation(0.0);
-        
-        wxMessageBox(wxString::Format(wxT("Nuevo escenario '%s' creado (%dx%d)"), name, width, height),
-                     wxT("Editor"), wxOK | wxICON_INFORMATION);
-        
-        mainWindow_->updateCanvas();
+    });
+
+    if (mainWindow_) {
+        mainWindow_->setScenarioName(name);
+        mainWindow_->setModified(true);
+        mainWindow_->requestSaveScenario();
     }
 }
 
 void EditorPanel::onResizeScenario(wxCommandEvent& event) {
     (void)event;
-    if (mainWindow_) {
-        int newWidth = widthCtrl_ ? widthCtrl_->GetValue() : 50;
-        int newHeight = heightCtrl_ ? heightCtrl_->GetValue() : 50;
-        
-        auto& config = mainWindow_->getExperimentService().getConfig();
-        
+    int newWidth = widthCtrl_ ? widthCtrl_->GetValue() : 50;
+    int newHeight = heightCtrl_ ? heightCtrl_->GetValue() : 50;
+
+    commitScenarioChange([&](tp::application::ExperimentConfig& config) {
         tp::domain::Scenario newScenario(newWidth, newHeight);
-        
+        const wxString requestedName = nameCtrl_ ? nameCtrl_->GetValue() : wxString::FromUTF8(config.scenario.getName().c_str());
+        newScenario.setName(std::string(requestedName.ToUTF8()));
         int copyWidth = std::min(newWidth, config.scenario.getWidth());
         int copyHeight = std::min(newHeight, config.scenario.getHeight());
-        
         for (int y = 0; y < copyHeight; ++y) {
             for (int x = 0; x < copyWidth; ++x) {
                 newScenario.setCell(x, y, config.scenario.getCell(x, y));
             }
         }
-        
         for (int y = copyHeight; y < newHeight; ++y) {
             for (int x = 0; x < newWidth; ++x) {
                 newScenario.setCell(x, y, tp::shared::CellType::Water);
             }
         }
-        
         config.scenario = std::move(newScenario);
-        
-        wxMessageBox(wxString::Format(wxT("Escenario redimensionado a %dx%d"), newWidth, newHeight),
-                     wxT("Editor"), wxOK | wxICON_INFORMATION);
-        
-        mainWindow_->updateCanvas();
+    });
+
+    if (mainWindow_ && nameCtrl_) {
+        mainWindow_->setScenarioName(nameCtrl_->GetValue());
+        mainWindow_->setModified(true);
     }
+
+    wxMessageBox(wxString::Format(wxT("Escenario redimensionado a %dx%d"), newWidth, newHeight),
+                 wxT("Editor"), wxOK | wxICON_INFORMATION);
 }
 
 void EditorPanel::onClearScenario(wxCommandEvent& event) {
@@ -434,10 +562,10 @@ void EditorPanel::onClearScenario(wxCommandEvent& event) {
     int result = wxMessageBox(wxT("¿Estás seguro de que quieres limpiar todo el escenario?"),
                               wxT("Confirmar"), wxYES_NO | wxICON_QUESTION);
     if (result == wxYES) {
-        if (mainWindow_) {
-            auto& config = mainWindow_->getExperimentService().getConfig();
+        if (auto* config = currentConfig()) {
             commandHistory_.executeCommand(
-                std::make_unique<ClearScenarioCommand>(config.scenario));
+                std::make_unique<ClearScenarioCommand>(config->scenario));
+            mainWindow_->getScenarioDocument().notifyChanged();
             mainWindow_->updateCanvas();
         }
     }
@@ -445,20 +573,20 @@ void EditorPanel::onClearScenario(wxCommandEvent& event) {
 
 void EditorPanel::onFillWater(wxCommandEvent& event) {
     (void)event;
-    if (mainWindow_) {
-        auto& config = mainWindow_->getExperimentService().getConfig();
+    if (auto* config = currentConfig()) {
         commandHistory_.executeCommand(
-            std::make_unique<FillScenarioCommand>(config.scenario, tp::shared::CellType::Water));
+            std::make_unique<FillScenarioCommand>(config->scenario, tp::shared::CellType::Water));
+        mainWindow_->getScenarioDocument().notifyChanged();
         mainWindow_->updateCanvas();
     }
 }
 
 void EditorPanel::onFillLand(wxCommandEvent& event) {
     (void)event;
-    if (mainWindow_) {
-        auto& config = mainWindow_->getExperimentService().getConfig();
+    if (auto* config = currentConfig()) {
         commandHistory_.executeCommand(
-            std::make_unique<FillScenarioCommand>(config.scenario, tp::shared::CellType::Land));
+            std::make_unique<FillScenarioCommand>(config->scenario, tp::shared::CellType::Land));
+        mainWindow_->getScenarioDocument().notifyChanged();
         mainWindow_->updateCanvas();
     }
 }
@@ -467,8 +595,8 @@ void EditorPanel::onUndo(wxCommandEvent& event) {
     (void)event;
     if (commandHistory_.canUndo()) {
         commandHistory_.undo();
-        // Refresh canvas
         if (mainWindow_) {
+            mainWindow_->getScenarioDocument().notifyChanged();
             mainWindow_->updateCanvas();
         }
     }
@@ -478,8 +606,8 @@ void EditorPanel::onRedo(wxCommandEvent& event) {
     (void)event;
     if (commandHistory_.canRedo()) {
         commandHistory_.redo();
-        // Refresh canvas
         if (mainWindow_) {
+            mainWindow_->getScenarioDocument().notifyChanged();
             mainWindow_->updateCanvas();
         }
     }
@@ -487,116 +615,18 @@ void EditorPanel::onRedo(wxCommandEvent& event) {
 
 void EditorPanel::onFieldTypeChange(wxCommandEvent& event) {
     (void)event;
-    // Actualizar tipo de campo
-    if (mainWindow_ && fieldTypeChoice_) {
-        int selection = fieldTypeChoice_->GetSelection();
-        
-        auto& config = mainWindow_->getExperimentService().getConfig();
-        
-        // Aplicar el tipo de campo seleccionado
-        switch (selection) {
-            case 0: // Ninguno
-                config.field = tp::domain::VectorField([](double, double) { 
-                    return tp::shared::Vec2d(0, 0); 
-                });
-                break;
-            case 1: // Uniforme
-                config.field = tp::domain::VectorField::uniform(1.0, 0.0);
-                break;
-            case 2: // Lineal
-                config.field = tp::domain::VectorField::linear(0.1, 0.0, 0.0, 0.1);
-                break;
-            case 3: // Radial
-                if (fieldCenterXCtrl_ && fieldCenterYCtrl_) {
-                    double cx = fieldCenterXCtrl_->GetValue();
-                    double cy = fieldCenterYCtrl_->GetValue();
-                    config.field = tp::domain::VectorField::radial(cx, cy, 1.0);
-                }
-                break;
-            case 4: // Rotacional
-                if (fieldCenterXCtrl_ && fieldCenterYCtrl_) {
-                    double cx = fieldCenterXCtrl_->GetValue();
-                    double cy = fieldCenterYCtrl_->GetValue();
-                    config.field = tp::domain::VectorField::rotational(cx, cy, 1.0);
-                }
-                break;
-            case 5: // Personalizado - mantener el actual
-                break;
-            default:
-                break;
-        }
-        
-        mainWindow_->updateCanvas();
-    }
+    if (!mainWindow_ || !fieldTypeChoice_) return;
+    applyFieldControlsToConfig();
 }
 
 void EditorPanel::onFieldParamChange(wxCommandEvent& event) {
     (void)event;
-    // Actualizar parámetros del campo (intensidad, centro)
-    if (mainWindow_) {
-        auto& config = mainWindow_->getExperimentService().getConfig();
-        
-        // Obtener valores actuales
-        double intensity = fieldIntensitySlider_ ? fieldIntensitySlider_->GetValue() / 50.0 : 1.0;
-        double centerX = fieldCenterXCtrl_ ? fieldCenterXCtrl_->GetValue() : 25.0;
-        double centerY = fieldCenterYCtrl_ ? fieldCenterYCtrl_->GetValue() : 25.0;
-        
-        int fieldType = fieldTypeChoice_ ? fieldTypeChoice_->GetSelection() : 1;
-        
-        // Recrear el campo con los nuevos parámetros
-        switch (fieldType) {
-            case 0: // Ninguno
-                config.field = tp::domain::VectorField([](double, double) { 
-                    return tp::shared::Vec2d(0, 0); 
-                });
-                break;
-            case 1: // Uniforme
-                config.field = tp::domain::VectorField::uniform(intensity, 0.0);
-                break;
-            case 2: // Lineal
-                config.field = tp::domain::VectorField::linear(
-                    intensity * 0.1, 0.0, 0.0, intensity * 0.1);
-                break;
-            case 3: // Radial
-                config.field = tp::domain::VectorField::radial(centerX, centerY, intensity);
-                break;
-            case 4: // Rotacional
-                config.field = tp::domain::VectorField::rotational(centerX, centerY, intensity);
-                break;
-            default:
-                break;
-        }
-        
-        mainWindow_->updateCanvas();
-    }
+    applyFieldControlsToConfig();
 }
 
 void EditorPanel::onSpinCtrlChange(wxSpinEvent& event) {
     (void)event;
-    // Actualizar parámetros del campo desde SpinCtrl (centro X, centro Y)
-    if (mainWindow_) {
-        auto& config = mainWindow_->getExperimentService().getConfig();
-        
-        double centerX = fieldCenterXCtrl_ ? fieldCenterXCtrl_->GetValue() : 25.0;
-        double centerY = fieldCenterYCtrl_ ? fieldCenterYCtrl_->GetValue() : 25.0;
-        double intensity = fieldIntensitySlider_ ? fieldIntensitySlider_->GetValue() / 50.0 : 1.0;
-        
-        int fieldType = fieldTypeChoice_ ? fieldTypeChoice_->GetSelection() : 1;
-        
-        // Recrear el campo con los nuevos parámetros de centro
-        switch (fieldType) {
-            case 3: // Radial
-                config.field = tp::domain::VectorField::radial(centerX, centerY, intensity);
-                break;
-            case 4: // Rotacional
-                config.field = tp::domain::VectorField::rotational(centerX, centerY, intensity);
-                break;
-            default:
-                break;
-        }
-        
-        mainWindow_->updateCanvas();
-    }
+    applyFieldControlsToConfig();
 }
 
 }

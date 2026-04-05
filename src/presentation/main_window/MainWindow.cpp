@@ -4,6 +4,7 @@
 #include "widgets/SimpleGraph.hpp"
 #include "panels/TheoryPanel.hpp"
 #include "panels/EditorPanel.hpp"
+#include "panels/FieldEditorPanel.hpp"
 #include <wx/artprov.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
@@ -68,6 +69,7 @@ enum {
     ID_MENU_MODE_THEORY,
     ID_MENU_MODE_SIMULATION,
     ID_MENU_MODE_EDITOR,
+    ID_MENU_MODE_FIELD_EDITOR,
     ID_MENU_START,
     ID_MENU_PAUSE,
     ID_MENU_RESET,
@@ -108,6 +110,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(ID_MENU_MODE_THEORY, MainWindow::onModeTheory)
     EVT_MENU(ID_MENU_MODE_SIMULATION, MainWindow::onModeSimulation)
     EVT_MENU(ID_MENU_MODE_EDITOR, MainWindow::onModeEditor)
+    EVT_MENU(ID_MENU_MODE_FIELD_EDITOR, MainWindow::onModeFieldEditor)
     EVT_MENU(ID_MENU_START, MainWindow::onStartSimulation)
     EVT_MENU(ID_MENU_PAUSE, MainWindow::onPauseSimulation)
     EVT_MENU(ID_MENU_RESET, MainWindow::onResetSimulation)
@@ -120,6 +123,7 @@ wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU(ID_MENU_CUSTOM_FIELD, MainWindow::onCustomField)
     EVT_TIMER(ID_TIMER_SIMULATION, MainWindow::onTimer)
     EVT_MENU(ID_TOGGLE_3D, MainWindow::onToggle3D)
+    EVT_AUI_PANE_CLOSE(MainWindow::onAuiPaneClose)
     EVT_CLOSE(MainWindow::OnClose)
 wxEND_EVENT_TABLE()
 
@@ -130,11 +134,17 @@ wxEND_EVENT_TABLE()
 MainWindow::MainWindow(const wxString& title)
     : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(1600, 1000),
               wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE)
+    , scenarioDocument_(experimentService_)
     , leftPanel_(nullptr)
     , rightPanel_(nullptr)
     , bottomPanel_(nullptr)
     , canvas_(nullptr)
     , canvas3D_(nullptr)
+    , centerPanel_(nullptr)
+    , theoryPanel_(nullptr)
+    , simulationPanel_(nullptr)
+    , editorPanel_(nullptr)
+    , fieldEditorPanel_(nullptr)
     , is3DMode_(false)
     , currentMode_(AppMode::Simulation)
     , isRunning_(false)
@@ -144,8 +154,16 @@ MainWindow::MainWindow(const wxString& title)
     , currentSpeed_(0.0)
     , currentEnergy_(0.0)
     , totalDistance_(0.0)
+    , netDisplacement_(0.0)
+    , routeEfficiency_(0.0)
+    , initialPosition_(tp::shared::Vec2d(0.0, 0.0))
+    , simulationStartPosition_(tp::shared::Vec2d(0.0, 0.0))
+    , simulationStartVelocity_(tp::shared::Vec2d(0.0, 0.0))
+    , simulationStartOrientation_(0.0)
     , isModified_(false)
     , currentScenarioName_(wxT("Nuevo Escenario"))
+    , currentScenarioPath_(wxEmptyString)
+    , simulationStatusText_(wxT("Listo para simular"))
 {
     // IMPORTANTE: Primero configurar el frame básico
     SetBackgroundColour(ModernColors::PRIMARY_BG);
@@ -170,6 +188,10 @@ MainWindow::MainWindow(const wxString& title)
     
     // Crear experimento inicial
     experimentService_.createNewExperiment();
+    currentScenarioName_ = wxString::FromUTF8(experimentService_.getConfig().scenario.getName().c_str());
+    simulationStartPosition_ = experimentService_.getConfig().boat.getPosition();
+    simulationStartVelocity_ = experimentService_.getConfig().boat.getVelocity();
+    simulationStartOrientation_ = experimentService_.getConfig().boat.getOrientation();
     
     // Configurar canvas
     if (canvas_) {
@@ -226,13 +248,16 @@ void MainWindow::setupMenu()
     viewMenu->Check(ID_MENU_VIEW_FIELD, true);
     viewMenu->AppendCheckItem(ID_MENU_VIEW_TRAJECTORY, wxT("Mostrar &Trayectoria\tCtrl+T"), wxT("Mostrar/ocultar trayectoria"));
     viewMenu->Check(ID_MENU_VIEW_TRAJECTORY, true);
+    viewMenu->AppendSeparator();
+    viewMenu->Append(ID_MENU_RESET_VIEW, wxT("Reiniciar &Vista"), wxT("Restaurar todos los paneles visibles"));
     menuBar->Append(viewMenu, wxT("&Ver"));
     
     // Menú Modo
     wxMenu* modeMenu = new wxMenu();
     modeMenu->AppendRadioItem(ID_MENU_MODE_THEORY, wxT("&Teoría\tF1"), wxT("Modo teoría educativa"));
     modeMenu->AppendRadioItem(ID_MENU_MODE_SIMULATION, wxT("&Simulación\tF2"), wxT("Modo simulación"));
-    modeMenu->AppendRadioItem(ID_MENU_MODE_EDITOR, wxT("&Editor\tF3"), wxT("Modo editor de escenarios"));
+    modeMenu->AppendRadioItem(ID_MENU_MODE_EDITOR, wxT("Editor de &escenario\tF3"), wxT("Modo editor de escenarios"));
+    modeMenu->AppendRadioItem(ID_MENU_MODE_FIELD_EDITOR, wxT("Editor de &campo\tF7"), wxT("Modo editor de campos"));
     modeMenu->Check(ID_MENU_MODE_SIMULATION, true);
     menuBar->Append(modeMenu, wxT("&Modo"));
     
@@ -293,9 +318,12 @@ void MainWindow::setupToolbar()
     toolbar->AddTool(ID_MENU_MODE_SIMULATION, wxT("Simulación"),
                      wxArtProvider::GetBitmap(wxART_EXECUTABLE_FILE, wxART_TOOLBAR, wxSize(28, 28)),
                      wxT("Modo simulación (F2)"));
-    toolbar->AddTool(ID_MENU_MODE_EDITOR, wxT("Editor"),
-                     wxArtProvider::GetBitmap(wxART_EDIT, wxART_TOOLBAR, wxSize(28, 28)),
-                     wxT("Modo editor de escenarios (F3)"));
+    toolbar->AddTool(ID_MENU_MODE_EDITOR, wxT("Mapa"),
+                     wxArtProvider::GetBitmap(wxART_LIST_VIEW, wxART_TOOLBAR, wxSize(28, 28)),
+                     wxT("Editor de escenarios (F3)"));
+    toolbar->AddTool(ID_MENU_MODE_FIELD_EDITOR, wxT("Campo"),
+                     wxArtProvider::GetBitmap(wxART_REPORT_VIEW, wxART_TOOLBAR, wxSize(28, 28)),
+                     wxT("Editor de campos (F7)"));
     
     toolbar->AddSeparator();
     toolbar->AddSeparator();
@@ -353,6 +381,12 @@ void MainWindow::setupAuiLayout()
     experimentService_.addConfigChangeListener([this]() {
         if (rightPanel_) {
             rightPanel_->updateProperties();
+        }
+        if (editorPanel_) {
+            editorPanel_->syncFromDocument();
+        }
+        if (fieldEditorPanel_) {
+            fieldEditorPanel_->syncFromDocument();
         }
     });
     
@@ -420,14 +454,26 @@ void MainWindow::setupAuiLayout()
     editorPanel_ = new EditorPanel(this, this);
     wxAuiPaneInfo editorInfo;
     editorInfo.Name(wxT("editorPanel"))
-              .Caption(wxT("Editor"))
-              .Center()
-              .Layer(0)
-              .Position(0)
-              .BestSize(800, 600)
-              .MinSize(400, 300)
+              .Caption(wxT("Editor de escenario"))
+              .Right()
+              .Layer(1)
+              .Position(1)
+              .BestSize(430, 800)
+              .MinSize(360, 500)
               .Hide();
     auiManager_.AddPane(editorPanel_, editorInfo);
+
+    fieldEditorPanel_ = new FieldEditorPanel(this, this);
+    wxAuiPaneInfo fieldEditorInfo;
+    fieldEditorInfo.Name(wxT("fieldEditorPanel"))
+                  .Caption(wxT("Editor de campo"))
+                  .Right()
+                  .Layer(1)
+                  .Position(1)
+                  .BestSize(430, 800)
+                  .MinSize(360, 500)
+                  .Hide();
+    auiManager_.AddPane(fieldEditorPanel_, fieldEditorInfo);
     
     // Aplicar layout
     auiManager_.Update();
@@ -438,13 +484,77 @@ void MainWindow::setupStatusBar()
     CreateStatusBar(5);
     int widths[] = {250, 180, 180, 150, 120};
     SetStatusWidths(5, widths);
-    
-    // Configurar colores de la barra de estado
-    SetStatusText(wxT("◉ Listo para simular"), 0);
-    SetStatusText(wxT("📍 Modo: Simulación"), 1);
-    SetStatusText(wxT("⏱ t: 0.00s"), 2);
-    SetStatusText(wxT("📊 v: 0.00 m/s"), 3);
-    SetStatusText(wxT("🔧 Método: Euler"), 4);
+
+    refreshStatusBar();
+}
+
+void MainWindow::refreshStatusBar()
+{
+    wxString primary;
+    switch (currentMode_) {
+        case AppMode::Theory:
+            primary = wxT("Teoría educativa");
+            break;
+        case AppMode::Editor:
+            primary = wxT("Editor de escenario activo");
+            break;
+        case AppMode::FieldEditor:
+            primary = wxT("Editor de campo activo");
+            break;
+        case AppMode::Simulation:
+        default:
+            primary = simulationStatusText_.empty() ? wxT("Listo para simular") : simulationStatusText_;
+            break;
+    }
+
+    wxString modeText;
+    switch (currentMode_) {
+        case AppMode::Theory: modeText = wxT("Modo: Teoría"); break;
+        case AppMode::Simulation: modeText = wxT("Modo: Simulación"); break;
+        case AppMode::Editor: modeText = wxT("Modo: Editor de escenario"); break;
+        case AppMode::FieldEditor: modeText = wxT("Modo: Editor de campo"); break;
+    }
+
+    SetStatusText(primary, 0);
+    SetStatusText(modeText, 1);
+
+    if (currentMode_ == AppMode::Theory) {
+        SetStatusText(wxEmptyString, 2);
+        SetStatusText(wxEmptyString, 3);
+        SetStatusText(wxEmptyString, 4);
+        return;
+    }
+
+    const auto& boat = experimentService_.getConfig().boat;
+    const auto pos = boat.getPosition();
+    SetStatusText(wxString::Format(wxT("Coords: (%.1f, %.1f)"), pos.x, pos.y), 2);
+
+    if (currentMode_ == AppMode::Simulation) {
+        SetStatusText(wxString::Format(wxT("t: %.2f s | v: %.2f m/s"), currentTime_, currentSpeed_), 3);
+        wxString methodText = wxT("Método: Euler");
+        switch (experimentService_.getConfig().method) {
+            case tp::shared::IntegrationMethod::ImprovedEuler: methodText = wxT("Método: Heun"); break;
+            case tp::shared::IntegrationMethod::RK4: methodText = wxT("Método: RK4"); break;
+            case tp::shared::IntegrationMethod::Euler:
+            default: break;
+        }
+        SetStatusText(methodText, 4);
+    } else {
+        SetStatusText(wxEmptyString, 3);
+        SetStatusText(wxEmptyString, 4);
+    }
+}
+
+void MainWindow::syncViewMenuChecks()
+{
+    wxMenuBar* menuBar = GetMenuBar();
+    if (!menuBar) {
+        return;
+    }
+
+    menuBar->Check(ID_MENU_VIEW_LEFT, auiManager_.GetPane(leftPanel_).IsOk() && auiManager_.GetPane(leftPanel_).IsShown());
+    menuBar->Check(ID_MENU_VIEW_RIGHT, auiManager_.GetPane(rightPanel_).IsOk() && auiManager_.GetPane(rightPanel_).IsShown());
+    menuBar->Check(ID_MENU_VIEW_BOTTOM, auiManager_.GetPane(bottomPanel_).IsOk() && auiManager_.GetPane(bottomPanel_).IsShown());
 }
 
 void MainWindow::setMode(AppMode mode)
@@ -459,20 +569,12 @@ void MainWindow::setMode(AppMode mode)
         menuBar->Check(ID_MENU_MODE_THEORY, mode == AppMode::Theory);
         menuBar->Check(ID_MENU_MODE_SIMULATION, mode == AppMode::Simulation);
         menuBar->Check(ID_MENU_MODE_EDITOR, mode == AppMode::Editor);
+        menuBar->Check(ID_MENU_MODE_FIELD_EDITOR, mode == AppMode::FieldEditor);
     }
-    
-    // Actualizar barra de estado
-    wxString modeText;
-    switch (mode) {
-        case AppMode::Theory: modeText = wxT("Modo: Teoría"); break;
-        case AppMode::Simulation: modeText = wxT("Modo: Simulación"); break;
-        case AppMode::Editor: modeText = wxT("Modo: Editor"); break;
-    }
-    SetStatusText(modeText, 1);
     
     // Cambiar panel central visible
     if (auiManager_.GetPane(canvas_).IsOk()) {
-        auiManager_.GetPane(canvas_).Show(mode == AppMode::Simulation);
+        auiManager_.GetPane(canvas_).Show(mode == AppMode::Simulation || mode == AppMode::Editor || mode == AppMode::FieldEditor);
     }
     if (auiManager_.GetPane(theoryPanel_).IsOk()) {
         auiManager_.GetPane(theoryPanel_).Show(mode == AppMode::Theory);
@@ -480,11 +582,22 @@ void MainWindow::setMode(AppMode mode)
     if (auiManager_.GetPane(editorPanel_).IsOk()) {
         auiManager_.GetPane(editorPanel_).Show(mode == AppMode::Editor);
     }
+    if (auiManager_.GetPane(fieldEditorPanel_).IsOk()) {
+        auiManager_.GetPane(fieldEditorPanel_).Show(mode == AppMode::FieldEditor);
+    }
+    if (auiManager_.GetPane(rightPanel_).IsOk()) {
+        auiManager_.GetPane(rightPanel_).Show(mode != AppMode::Editor && mode != AppMode::FieldEditor);
+    }
     auiManager_.Update();
+    syncViewMenuChecks();
+    refreshStatusBar();
     
     // Notificar a componentes
     if (canvas_) {
         canvas_->setMode(mode);
+        if (mode == AppMode::FieldEditor) {
+            canvas_->setShowField(true);
+        }
     }
     if (rightPanel_) {
         rightPanel_->updateProperties();
@@ -553,7 +666,25 @@ void MainWindow::setEditorMode(bool editor) {
     }
 }
 
-// Funciónes auxiliares refactorizadas
+void MainWindow::beginEditorStroke() {
+    if (editorPanel_) {
+        editorPanel_->beginStroke();
+    }
+}
+
+void MainWindow::applyEditorToolAtCell(int x, int y) {
+    if (editorPanel_) {
+        editorPanel_->applyToolAtCell(x, y);
+    }
+}
+
+void MainWindow::endEditorStroke() {
+    if (editorPanel_) {
+        editorPanel_->endStroke();
+    }
+}
+
+// Funciones auxiliares refactorizadas
 
 bool MainWindow::confirmSaveChanges(const wxString& action)
 {
@@ -583,7 +714,12 @@ void MainWindow::onNew(wxCommandEvent& event)
     if (!confirmSaveChanges(wxT("crear un nuevo escenario"))) return;
     
     experimentService_.createNewExperiment();
-    currentScenarioName_ = wxT("Nuevo Escenario");
+    currentScenarioName_ = wxString::FromUTF8(experimentService_.getConfig().scenario.getName().c_str());
+    currentScenarioPath_.clear();
+    simulationStartPosition_ = experimentService_.getConfig().boat.getPosition();
+    simulationStartVelocity_ = experimentService_.getConfig().boat.getVelocity();
+    simulationStartOrientation_ = experimentService_.getConfig().boat.getOrientation();
+    simulationStatusText_ = wxT("Listo para simular");
     isModified_ = false;
     updateWindowTitle();
     resetSimulation();
@@ -605,10 +741,20 @@ void MainWindow::onOpen(wxCommandEvent& event)
     if (openDialog.ShowModal() == wxID_OK) {
         wxString path = openDialog.GetPath();
         experimentService_.loadExperiment(path.ToStdString());
+
+        currentScenarioPath_ = path;
+        const std::string loadedName = experimentService_.getConfig().scenario.getName();
+        if (!loadedName.empty()) {
+            currentScenarioName_ = wxString::FromUTF8(loadedName.c_str());
+        } else {
+            currentScenarioName_ = openDialog.GetFilename();
+            stripExtension(currentScenarioName_, wxT(".scenario"));
+        }
         
-        currentScenarioName_ = openDialog.GetFilename();
-        stripExtension(currentScenarioName_, wxT(".scenario"));
-        
+        simulationStartPosition_ = experimentService_.getConfig().boat.getPosition();
+        simulationStartVelocity_ = experimentService_.getConfig().boat.getVelocity();
+        simulationStartOrientation_ = experimentService_.getConfig().boat.getOrientation();
+        simulationStatusText_ = wxT("Listo para simular");
         isModified_ = false;
         updateWindowTitle();
         resetSimulation();
@@ -622,18 +768,34 @@ void MainWindow::onOpen(wxCommandEvent& event)
 void MainWindow::onSave(wxCommandEvent& event)
 {
     (void)event;
-    wxFileDialog saveDialog(this, wxT("Guardar escenario"), wxT(""), currentScenarioName_,
+    wxString defaultDir;
+    if (!currentScenarioPath_.empty()) {
+        wxFileName currentFile(currentScenarioPath_);
+        defaultDir = currentFile.GetPath();
+    }
+    wxString defaultName = currentScenarioName_.empty()
+        ? wxString::FromUTF8(experimentService_.getConfig().scenario.getName().c_str())
+        : currentScenarioName_;
+    wxFileDialog saveDialog(this, wxT("Guardar escenario"), defaultDir, defaultName,
                            wxT("Escenarios (*.scenario)|*.scenario"),
                            wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (saveDialog.ShowModal() == wxID_OK) {
         wxString path = saveDialog.GetPath();
         experimentService_.saveExperiment(path.ToStdString());
-        
-        currentScenarioName_ = saveDialog.GetFilename();
-        stripExtension(currentScenarioName_, wxT(".scenario"));
+
+        currentScenarioPath_ = path;
+        const std::string scenarioName = experimentService_.getConfig().scenario.getName();
+        if (!scenarioName.empty()) {
+            currentScenarioName_ = wxString::FromUTF8(scenarioName.c_str());
+        } else {
+            currentScenarioName_ = saveDialog.GetFilename();
+            stripExtension(currentScenarioName_, wxT(".scenario"));
+        }
         
         isModified_ = false;
         updateWindowTitle();
+        simulationStatusText_ = wxT("Listo para simular");
+        refreshStatusBar();
         
         if (bottomPanel_) {
             bottomPanel_->addEvent(wxT("Escenario guardado: ") + path);
@@ -730,6 +892,7 @@ void MainWindow::onViewLeftPanel(wxCommandEvent& event)
     wxAuiPaneInfo& pane = auiManager_.GetPane(leftPanel_);
     pane.Show(event.IsChecked());
     auiManager_.Update();
+    syncViewMenuChecks();
 }
 
 void MainWindow::onViewRightPanel(wxCommandEvent& event)
@@ -737,6 +900,7 @@ void MainWindow::onViewRightPanel(wxCommandEvent& event)
     wxAuiPaneInfo& pane = auiManager_.GetPane(rightPanel_);
     pane.Show(event.IsChecked());
     auiManager_.Update();
+    syncViewMenuChecks();
 }
 
 void MainWindow::onViewBottomPanel(wxCommandEvent& event)
@@ -744,6 +908,7 @@ void MainWindow::onViewBottomPanel(wxCommandEvent& event)
     wxAuiPaneInfo& pane = auiManager_.GetPane(bottomPanel_);
     pane.Show(event.IsChecked());
     auiManager_.Update();
+    syncViewMenuChecks();
 }
 
 void MainWindow::onViewGrid(wxCommandEvent& event)
@@ -779,7 +944,37 @@ void MainWindow::onModeSimulation(wxCommandEvent& event)
 
 void MainWindow::onModeEditor(wxCommandEvent& event)
 {
+    (void)event;
     setMode(AppMode::Editor);
+}
+
+void MainWindow::onModeFieldEditor(wxCommandEvent& event)
+{
+    (void)event;
+    setMode(AppMode::FieldEditor);
+}
+
+void MainWindow::openCustomFieldDialog()
+{
+    wxCommandEvent event;
+    onCustomField(event);
+}
+
+void MainWindow::requestSimulationReset()
+{
+    resetSimulation();
+}
+
+void MainWindow::requestSaveScenario()
+{
+    wxCommandEvent event;
+    onSave(event);
+}
+
+void MainWindow::requestLoadScenario()
+{
+    wxCommandEvent event;
+    onOpen(event);
 }
 
 void MainWindow::onTheoryScenarioRequest(const wxString& scenarioName)
@@ -816,13 +1011,15 @@ void MainWindow::onTheoryScenarioRequest(const wxString& scenarioName)
     // Reset simulation state
     resetSimulation();
     updateCanvas();
-    SetStatusText(wxT("Escenario cargado desde teoría"), 0);
+    simulationStatusText_ = wxT("Escenario cargado desde teoría");
+    refreshStatusBar();
 }
 
 void MainWindow::onStartSimulation(wxCommandEvent& event)
 {
     (void)event;
     if (!isRunning_) {
+        auto& config = experimentService_.getConfig();
         trajectoryPoints_.clear();
         if (canvas_) {
             canvas_->clearTrajectory();
@@ -833,12 +1030,23 @@ void MainWindow::onStartSimulation(wxCommandEvent& event)
         if (bottomPanel_) {
             bottomPanel_->clearGraphs();
         }
+        currentTime_ = 0.0;
+        currentSpeed_ = 0.0;
+        currentEnergy_ = 0.0;
+        totalDistance_ = 0.0;
+        netDisplacement_ = 0.0;
+        routeEfficiency_ = 1.0;
+        simulationStartPosition_ = config.boat.getPosition();
+        simulationStartVelocity_ = config.boat.getVelocity();
+        simulationStartOrientation_ = config.boat.getOrientation();
+        initialPosition_ = simulationStartPosition_;
         isRunning_ = true;
         isPaused_ = false;
         // Obtener paso temporal del slider (conversión de segundos a ms)
         int dtMs = static_cast<int>(getTimeStep() * 1000.0);
         timer_->Start(dtMs);
-        SetStatusText(wxT("Simulación en curso"), 0);
+        simulationStatusText_ = wxT("Simulación en curso");
+        refreshStatusBar();
         if (bottomPanel_) {
             bottomPanel_->addEvent(wxT("Simulación iniciada"));
         }
@@ -852,11 +1060,12 @@ void MainWindow::onPauseSimulation(wxCommandEvent& event)
         isPaused_ = !isPaused_;
         if (isPaused_) {
             timer_->Stop();
-            SetStatusText(wxT("Simulación pausada"), 0);
+            simulationStatusText_ = wxT("Simulación pausada");
         } else {
             timer_->Start(33);
-            SetStatusText(wxT("Simulación en curso"), 0);
+            simulationStatusText_ = wxT("Simulación en curso");
         }
+        refreshStatusBar();
     }
 }
 
@@ -877,12 +1086,7 @@ void MainWindow::onStepSimulation(wxCommandEvent& event)
 void MainWindow::onMethodChange(wxCommandEvent& event)
 {
     (void)event;
-    wxString methods[] = {wxT("Euler"), wxT("Euler Mejorado"), wxT("RK4")};
-    int methodIdx = 0;
-    if (rightPanel_) {
-        methodIdx = rightPanel_->getMethod();
-    }
-    SetStatusText(wxT("Método: ") + methods[methodIdx], 3);
+    refreshStatusBar();
 }
 
 void MainWindow::onDtChange(wxCommandEvent& event)
@@ -892,6 +1096,7 @@ void MainWindow::onDtChange(wxCommandEvent& event)
         int dtMs = static_cast<int>(rightPanel_->getTimeStep() * 1000.0);
         timer_->Start(dtMs);
     }
+    refreshStatusBar();
 }
 
 void MainWindow::onAbout(wxCommandEvent& event)
@@ -913,7 +1118,8 @@ void MainWindow::onHelp(wxCommandEvent& event)
         wxT("Guía Rápida:\n\n")
         wxT("F1 - Modo Teoría\n")
         wxT("F2 - Modo Simulación\n")
-        wxT("F3 - Modo Editor\n")
+        wxT("F3 - Editor de escenario\n")
+        wxT("F7 - Editor de campo\n")
         wxT("F4 - Mostrar/ocultar panel izquierdo\n")
         wxT("F5 - Mostrar/ocultar panel derecho\n")
         wxT("F6 - Mostrar/ocultar panel inferior\n")
@@ -939,6 +1145,7 @@ void MainWindow::onResetView(wxCommandEvent& event)
         auiManager_.GetPane(bottomPanel_).Show(true);
     }
     auiManager_.Update();
+    syncViewMenuChecks();
     
     // Actualizar checks del menú Ver
     wxMenuBar* menuBar = GetMenuBar();
@@ -951,6 +1158,14 @@ void MainWindow::onResetView(wxCommandEvent& event)
     if (bottomPanel_) {
         bottomPanel_->addEvent(wxT("Vista reiniciada a valores por defecto"));
     }
+}
+
+void MainWindow::onAuiPaneClose(wxAuiManagerEvent& event)
+{
+    event.Skip();
+    CallAfter([this]() {
+        syncViewMenuChecks();
+    });
 }
 
 void MainWindow::onClearTrajectory(wxCommandEvent& event)
@@ -1024,17 +1239,23 @@ void MainWindow::onCustomField(wxCommandEvent& event)
         wxT("Ingrese las componentes del campo vectorial F(x,y) = (Fx, Fy)")), 
         0, wxALL, 10);
     
+    auto& currentConfig = experimentService_.getConfig();
+    const bool isCustom = currentConfig.fieldView.type == tp::application::FieldPresetType::Custom;
+    const bool hasCustomExpr = isCustom && !(currentConfig.fieldView.customFx == "0" && currentConfig.fieldView.customFy == "0");
+    const wxString initialFx = hasCustomExpr ? wxString::FromUTF8(currentConfig.fieldView.customFx.c_str()) : wxT("-0.08*(x-25)-0.25*(y-25)");
+    const wxString initialFy = hasCustomExpr ? wxString::FromUTF8(currentConfig.fieldView.customFy.c_str()) : wxT("-0.08*(y-25)+0.25*(x-25)");
+
     // Fx
     wxBoxSizer* fxSizer = new wxBoxSizer(wxHORIZONTAL);
     fxSizer->Add(new wxStaticText(&dialog, wxID_ANY, wxT("Fx(x,y) = ")), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl* fxCtrl = new wxTextCtrl(&dialog, wxID_ANY, wxT("0"));
+    wxTextCtrl* fxCtrl = new wxTextCtrl(&dialog, wxID_ANY, initialFx);
     fxSizer->Add(fxCtrl, 1, wxEXPAND);
     mainSizer->Add(fxSizer, 0, wxEXPAND | wxALL, 5);
     
     // Fy
     wxBoxSizer* fySizer = new wxBoxSizer(wxHORIZONTAL);
     fySizer->Add(new wxStaticText(&dialog, wxID_ANY, wxT("Fy(x,y) = ")), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl* fyCtrl = new wxTextCtrl(&dialog, wxID_ANY, wxT("0"));
+    wxTextCtrl* fyCtrl = new wxTextCtrl(&dialog, wxID_ANY, initialFy);
     fySizer->Add(fyCtrl, 1, wxEXPAND);
     mainSizer->Add(fySizer, 0, wxEXPAND | wxALL, 5);
     
@@ -1060,7 +1281,7 @@ void MainWindow::onCustomField(wxCommandEvent& event)
     });
     mainSizer->Add(examples, 1, wxEXPAND | wxALL, 5);
     
-    // Botónes
+    // Botones
     wxBoxSizer* btnSizer = new wxBoxSizer(wxHORIZONTAL);
     wxButton* okBtn = new wxButton(&dialog, wxID_OK, wxT("Aplicar"));
     wxButton* cancelBtn = new wxButton(&dialog, wxID_CANCEL, wxT("Cancelar"));
@@ -1081,15 +1302,35 @@ void MainWindow::onCustomField(wxCommandEvent& event)
         
         if (parser.parse(fxExpr, fyExpr)) {
             auto& config = experimentService_.getConfig();
-            config.field = tp::domain::VectorField([parser](double x, double y) {
+            config.fieldView.type = tp::application::FieldPresetType::Custom;
+            config.fieldView.customFx = fxExpr;
+            config.fieldView.customFy = fyExpr;
+
+            // Aplicamos el campo personalizado directamente para evitar que
+            // un flujo de resincronización de UI deje el campo activo en cero.
+            const tp::domain::VectorField customField([parser](double x, double y) {
                 return parser.evaluate(x, y);
             });
-            config.fieldView.type = tp::application::FieldPresetType::Custom;
-            config.fieldView.intensity = 0.0;
-            config.fieldView.centerX = 25.0;
-            config.fieldView.centerY = 25.0;
+            experimentService_.setField(customField);
+
+            const auto boatPos = config.boat.getPosition();
+            const auto sampleBoat = config.field.getValue(boatPos.x, boatPos.y);
+            const double sampleMagnitude = sampleBoat.magnitude();
+
+            if (canvas_) {
+                canvas_->setShowField(true);
+            }
+            if (leftPanel_) {
+                leftPanel_->setFieldLayerVisible(true);
+            }
+            simulationStatusText_ = wxT("Campo personalizado aplicado");
+            refreshStatusBar();
+            resetSimulation();
+            markAsModified(true);
             
-            wxMessageBox(wxT("Campo personalizado aplicado:\nFx = ") + fxStr + wxT("\nFy = ") + fyStr,
+            wxMessageBox(wxT("Campo personalizado aplicado:\nFx = ") + fxStr + wxT("\nFy = ") + fyStr +
+                         wxString::Format(wxT("\n\nMuestra en bote: (%.3f, %.3f)\nMagnitud: %.3f"),
+                                          sampleBoat.x, sampleBoat.y, sampleMagnitude),
                          wxT("Campo Vectorial"), wxOK | wxICON_INFORMATION);
             
             if (bottomPanel_) {
@@ -1139,32 +1380,6 @@ void MainWindow::runSimulationStep()
         // Actualizar motor en tiempo real
         config.motor = tp::domain::Motor::constant(thrust, direction);
         
-        // Actualizar campo en tiempo real
-        int fieldType = rightPanel_->getFieldType();
-        double intensity = rightPanel_->getFieldIntensity();
-        double centerX = config.fieldView.centerX;
-        double centerY = config.fieldView.centerY;
-        
-        // Recalcular campo según tipo selecciónado
-        switch (fieldType) {
-            case 0: // Uniforme
-                config.field = tp::domain::VectorField::uniform(intensity, direction);
-                break;
-            case 1: // Lineal
-                config.field = tp::domain::VectorField::linear(intensity / 25.0, 0.0, 0.0, 0.0);
-                break;
-            case 2: // Radial
-                config.field = tp::domain::VectorField::radial(centerX, centerY, intensity);
-                break;
-            case 3: // Rotacional
-                config.field = tp::domain::VectorField::rotational(centerX, centerY, intensity);
-                break;
-            case 4: // Personalizado
-                break;
-            default:
-                break;
-        }
-        
         // Actualizar método numérico en tiempo real
         int method = rightPanel_->getMethod();
         switch (method) {
@@ -1179,37 +1394,46 @@ void MainWindow::runSimulationStep()
     
     // Usar el paso temporal actualizado
     double dt = config.timeStep > 0 ? config.timeStep : 0.033;
-    
-    // Crear runner para un solo paso
-    tp::simulation::SimulationRunner runner(config.boat, config.field, config.motor, config.scenario);
-    runner.setTimeStep(dt);
-    runner.setMaxTime(currentTime_ + dt + 0.001);
-    
-    // Selecciónar integrador según configuración ACTUAL
+
+    tp::simulation::PhysicsModel model(config.boat, config.field, config.motor);
+    model.setScenario(&config.scenario);
+
+    std::unique_ptr<tp::simulation::Integrator> integrator;
     switch (config.method) {
         case tp::shared::IntegrationMethod::ImprovedEuler:
-            runner.setIntegrator(std::make_unique<tp::simulation::ImprovedEulerIntegrator>());
+            integrator = std::make_unique<tp::simulation::ImprovedEulerIntegrator>();
             break;
         case tp::shared::IntegrationMethod::RK4:
-            runner.setIntegrator(std::make_unique<tp::simulation::RK4Integrator>());
+            integrator = std::make_unique<tp::simulation::RK4Integrator>();
             break;
         case tp::shared::IntegrationMethod::Euler:
         default:
-            runner.setIntegrator(std::make_unique<tp::simulation::EulerIntegrator>());
+            integrator = std::make_unique<tp::simulation::EulerIntegrator>();
             break;
     }
-    
-    // Ejecutar simulación
-    auto result = runner.run();
-    
-    if (!result.states.empty()) {
-        const auto& state = result.states.back();
+
+    tp::simulation::PhysicsState currentState;
+    currentState.time = currentTime_;
+    currentState.position = config.boat.getPosition();
+    currentState.velocity = config.boat.getVelocity();
+    currentState.orientation = config.boat.getOrientation();
+    currentState.kineticEnergy = currentEnergy_;
+    currentState.totalEnergy = currentEnergy_;
+    currentState.accumulatedWork = 0.0;
+    currentState.collision = false;
+
+    const auto state = integrator->step(currentState, model, dt);
+    {
+        const double stepDistance = (state.position - currentState.position).magnitude();
         
         // Actualizar datos de simulación
         currentTime_ = state.time;
         currentSpeed_ = state.velocity.magnitude();
         currentEnergy_ = state.kineticEnergy;
-        totalDistance_ = result.totalDistance;
+        totalDistance_ += stepDistance;
+        config.boat.setPosition(state.position);
+        config.boat.setVelocity(state.velocity);
+        config.boat.setOrientation(state.orientation);
         
         // Calcular desplazamiento neto (distancia en línea recta desde el inicio)
         double dx = state.position.x - initialPosition_.x;
@@ -1272,13 +1496,14 @@ void MainWindow::runSimulationStep()
         // Actualizar barra de estado con coordenadas
         wxString coords;
         coords.Printf(wxT("Coords: (%.1f, %.1f)"), state.position.x, state.position.y);
-        SetStatusText(coords, 2);
+        refreshStatusBar();
         
         // Verificar si se alcanzó el tiempo máximo
         if (currentTime_ >= config.maxTime) {
             timer_->Stop();
             isRunning_ = false;
-            SetStatusText(wxT("Simulación completada"), 0);
+            simulationStatusText_ = wxT("Simulación completada");
+            refreshStatusBar();
             if (bottomPanel_) {
                 bottomPanel_->addEvent(wxString::Format(
                     wxT("Simulación finalizada - Tiempo: %.2f s, Distancia: %.2f m"),
@@ -1291,7 +1516,8 @@ void MainWindow::runSimulationStep()
         if (state.collision) {
             timer_->Stop();
             isRunning_ = false;
-            SetStatusText(wxT("Colisión detectada"), 0);
+            simulationStatusText_ = wxT("Colisión detectada");
+            refreshStatusBar();
             
             if (bottomPanel_) {
                 bottomPanel_->addEvent(wxT("¡Colisión detectada!"));
@@ -1329,16 +1555,18 @@ void MainWindow::resetSimulation()
     // Limpiar trayectoria acumulada
     trajectoryPoints_.clear();
     
-    // Resetear bote y guardar posición inicial
+    // Restaurar bote al estado inicial de la simulación/documento actual
     auto& config = getExperimentService().getConfig();
     config.boat.reset();
-    config.boat.setPosition(tp::shared::Vec2d(10.0, 25.0));
-    initialPosition_ = tp::shared::Vec2d(10.0, 25.0);
+    config.boat.setPosition(simulationStartPosition_);
+    config.boat.setVelocity(simulationStartVelocity_);
+    config.boat.setOrientation(simulationStartOrientation_);
+    initialPosition_ = simulationStartPosition_;
     
     // Limpiar trayectoria en canvas
     if (canvas_) {
         canvas_->clearTrajectory();
-        canvas_->updateBoatPosition(10.0, 25.0);
+        canvas_->updateBoatPosition(simulationStartPosition_.x, simulationStartPosition_.y);
     }
     if (canvas3D_) {
         canvas3D_->clearTrajectory();
@@ -1349,7 +1577,8 @@ void MainWindow::resetSimulation()
     
     updateResults();
     updateCanvas();
-    SetStatusText(wxT("Simulación reiniciada"), 0);
+    simulationStatusText_ = wxT("Simulación reiniciada");
+    refreshStatusBar();
 }
 
 void MainWindow::updateWindowTitle()
@@ -1417,6 +1646,7 @@ LeftPanel::LeftPanel(wxWindow* parent, MainWindow* mainWindow)
     scenarioSizer->Add(scenarioList_, 1, wxEXPAND | wxALL, 5);
     
     wxButton* loadBtn = new wxButton(scenarioPanel, wxID_ANY, wxT("Cargar"));
+    loadBtn->Bind(wxEVT_BUTTON, &LeftPanel::onLoadScenario, this);
     scenarioSizer->Add(loadBtn, 0, wxEXPAND | wxALL, 5);
     
     scenarioPanel->SetSizer(scenarioSizer);
@@ -1478,7 +1708,21 @@ void LeftPanel::applyLayerVisibility()
     onLayerToggle(dummy);
 }
 
+void LeftPanel::setFieldLayerVisible(bool visible)
+{
+    if (!layerList_ || layerList_->GetCount() < 2) {
+        return;
+    }
+    layerList_->Check(1, visible);
+    applyLayerVisibility();
+}
+
 void LeftPanel::onScenarioSelect(wxCommandEvent& event)
+{
+    (void)event;
+}
+
+void LeftPanel::onLoadScenario(wxCommandEvent& event)
 {
     (void)event;
     int sel = getSelectedScenarioIndex();
@@ -1583,6 +1827,7 @@ RightPanel::RightPanel(wxWindow* parent, MainWindow* mainWindow)
     , fieldIntensityValue_(nullptr)
     , fieldCenterXCtrl_(nullptr)
     , fieldCenterYCtrl_(nullptr)
+    , customFieldEditBtn_(nullptr)
     , methodChoice_(nullptr)
     , dtSlider_(nullptr)
     , durationCtrl_(nullptr)
@@ -1691,6 +1936,14 @@ RightPanel::RightPanel(wxWindow* parent, MainWindow* mainWindow)
     fieldCenterYCtrl_->Bind(wxEVT_SPINCTRL, &RightPanel::onFieldParamChange, this);
     centerGrid->Add(fieldCenterYCtrl_, 1, wxEXPAND);
     fieldSizer->Add(centerGrid, 0, wxEXPAND | wxALL, 5);
+
+    customFieldEditBtn_ = new wxButton(fieldPanel, wxID_ANY, wxT("Editar campo personalizado..."));
+    customFieldEditBtn_->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        if (mainWindow_) {
+            mainWindow_->openCustomFieldDialog();
+        }
+    });
+    fieldSizer->Add(customFieldEditBtn_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
     
     fieldSizer->AddStretchSpacer();
     fieldPanel->SetSizer(fieldSizer);
@@ -1710,8 +1963,8 @@ RightPanel::RightPanel(wxWindow* parent, MainWindow* mainWindow)
     boatGrid->Add(massCtrl_, 1, wxEXPAND);
     
     boatGrid->Add(new wxStaticText(boatPanel, wxID_ANY, wxT("Arrastre:")));
-    dragCtrl_ = new wxSpinCtrl(boatPanel, wxID_ANY, wxT("1"));
-    dragCtrl_->SetRange(0, 100);
+    dragCtrl_ = new wxSpinCtrl(boatPanel, wxID_ANY, wxT("100"));
+    dragCtrl_->SetRange(0, 1000);
     dragCtrl_->Bind(wxEVT_SPINCTRL, &RightPanel::onBoatParamChange, this);
     boatGrid->Add(dragCtrl_, 1, wxEXPAND);
     
@@ -1842,7 +2095,7 @@ RightPanel::RightPanel(wxWindow* parent, MainWindow* mainWindow)
     scenarioTabSizer->Add(scenarioGrid, 0, wxEXPAND | wxALL, 10);
     
     wxStaticText* scenarioInfo = new wxStaticText(scenarioTabPanel, wxID_ANY, 
-        wxT("💡 Usa el Editor (F3) para modificar el escenario\ngrafícamente."));
+        wxT("💡 Usa el Editor de escenario (F3) para modificar el mapa\ngráficamente."));
     scenarioInfo->SetForegroundColour(ModernColors::TEXT_SECONDARY);
     scenarioInfo->SetFont(wxFont(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_ITALIC, wxFONTWEIGHT_NORMAL));
     scenarioTabSizer->Add(scenarioInfo, 0, wxALL, 10);
@@ -1915,6 +2168,29 @@ void RightPanel::syncFieldControlsFromConfig()
     if (fieldCenterYCtrl_) {
         fieldCenterYCtrl_->SetValue(static_cast<int>(config.fieldView.centerY));
     }
+    updateFieldControlAvailability();
+}
+
+void RightPanel::updateFieldControlAvailability()
+{
+    if (!mainWindow_) {
+        return;
+    }
+
+    const bool isCustom = mainWindow_->getExperimentService().getConfig().fieldView.type == tp::application::FieldPresetType::Custom;
+    if (fieldIntensitySlider_) fieldIntensitySlider_->Enable(!isCustom);
+    if (fieldCenterXCtrl_) fieldCenterXCtrl_->Enable(!isCustom);
+    if (fieldCenterYCtrl_) fieldCenterYCtrl_->Enable(!isCustom);
+    if (fieldIntensityValue_) {
+        fieldIntensityValue_->SetForegroundColour(isCustom ? wxColour(120, 120, 120) : ModernColors::ACCENT_ORANGE);
+        if (isCustom) {
+            fieldIntensityValue_->SetLabel(wxT("n/a"));
+        }
+    }
+    if (customFieldEditBtn_) {
+        customFieldEditBtn_->Show(isCustom);
+    }
+    Layout();
 }
 
 void RightPanel::showBoatProperties()
@@ -2043,7 +2319,7 @@ void RightPanel::updateBoatFromUI()
     
     // Actualizar arrastre
     if (dragCtrl_) {
-        config.boat.setDragCoefficient(dragCtrl_->GetValue() / 10.0);
+        config.boat.setDragCoefficient(dragCtrl_->GetValue() / 100.0);
     }
     
     // Actualizar tamaño
@@ -2091,37 +2367,26 @@ void RightPanel::updateFieldFromUI()
 {
     if (!mainWindow_) return;
     
-    auto& config = mainWindow_->getExperimentService().getConfig();
+    auto& service = mainWindow_->getExperimentService();
+    auto& config = service.getConfig();
     
     int fieldType = fieldTypeChoice_ ? fieldTypeChoice_->GetSelection() : 0;
     double intensity = fieldIntensitySlider_ ? fieldIntensitySlider_->GetValue() / 10.0 : 5.0;
     double centerX = fieldCenterXCtrl_ ? fieldCenterXCtrl_->GetValue() : 25.0;
     double centerY = fieldCenterYCtrl_ ? fieldCenterYCtrl_->GetValue() : 25.0;
 
+    if (fieldType == static_cast<int>(tp::application::FieldPresetType::Custom)) {
+        updateFieldControlAvailability();
+        return;
+    }
+
     config.fieldView.type = static_cast<tp::application::FieldPresetType>(fieldType);
     config.fieldView.intensity = intensity;
     config.fieldView.centerX = centerX;
     config.fieldView.centerY = centerY;
-    
-        switch (fieldType) {
-            case 0: // Uniforme
-                config.field = tp::domain::VectorField::uniform(intensity, 0.0);
-                break;
-        case 1: // Lineal
-            config.field = tp::domain::VectorField::linear(intensity / 25.0, 0.0, 0.0, 0.0);
-            break;
-        case 2: // Radial
-            config.field = tp::domain::VectorField::radial(centerX, centerY, intensity);
-            break;
-            case 3: // Rotacional
-                config.field = tp::domain::VectorField::rotational(centerX, centerY, intensity);
-                break;
-            case 4: // Personalizado
-                break;
-            default:
-                break;
-        }
-    
+
+    service.rebuildFieldFromView();
+    updateFieldControlAvailability();
     refreshScenePreview(true);
 }
 

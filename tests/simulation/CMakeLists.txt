@@ -9,3 +9,8 @@ add_executable(test_physics test_physics.cpp)
 target_include_directories(test_physics PRIVATE ${CMAKE_SOURCE_DIR}/src/simulation)
 target_link_libraries(test_physics PRIVATE tp_simulation tp_domain)
 add_test(NAME TestPhysics COMMAND test_physics)
+
+# Test: Integrators Convergence (Euler vs RK4)
+add_executable(test_integrators_convergence test_integrators_convergence.cpp)
+target_link_libraries(test_integrators_convergence PRIVATE tp_simulation tp_domain)
+add_test(NAME TestIntegratorsConvergence COMMAND test_integrators_convergence)

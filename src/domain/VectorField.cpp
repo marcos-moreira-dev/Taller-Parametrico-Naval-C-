@@ -45,7 +45,11 @@ VectorField VectorField::radial(double cx, double cy, double k) {
     return VectorField([cx, cy, k](double x, double y) {
         double dx = x - cx;
         double dy = y - cy;
-        return Vec2d(k * dx, k * dy);
+        double r = std::sqrt(dx * dx + dy * dy);
+        if (r < 1e-9) {
+            return Vec2d(0.0, 0.0);
+        }
+        return Vec2d(k * dx / r, k * dy / r);
     });
 }
 
@@ -53,7 +57,11 @@ VectorField VectorField::rotational(double cx, double cy, double strength) {
     return VectorField([cx, cy, strength](double x, double y) {
         double dx = x - cx;
         double dy = y - cy;
-        return Vec2d(-strength * dy, strength * dx);
+        double r = std::sqrt(dx * dx + dy * dy);
+        if (r < 1e-9) {
+            return Vec2d(0.0, 0.0);
+        }
+        return Vec2d(-strength * dy / r, strength * dx / r);
     });
 }
 

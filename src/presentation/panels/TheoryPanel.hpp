@@ -13,7 +13,7 @@
  * - Integración con escenarios de simulación
  * 
  * @see TheoryCatalog para el contenido
- * @see EquationRenderer para fórmulas
+ * @see LatexBitmapPanel para fórmulas renderizadas con KaTeX
  */
 
 #if !defined(ssize_t) && !defined(_SSIZE_T_DEFINED)
@@ -43,7 +43,53 @@ public:
     void nextConcept();
     void previousConcept();
     void jumpToConcept(const wxString& conceptId);
-    void setScenarioCallback(std::function<void(const wxString&)> callback) { (void)callback; }
+    
+    /**
+     * @brief Establece el callback para solicitudes de carga de escenarios
+     * @param callback Función a invocar cuando el usuario solicita cargar un escenario
+     *                 desde el panel de teoría. Recibe el nombre del escenario.
+     * 
+     * @details Este método implementa el patrón Observer (también conocido como
+     *          patrón Callback o Publish-Subscribe). En lugar de que TheoryPanel
+     *          dependa directamente de MainWindow (acoplamiento fuerte), usamos
+     *          este callback para mantener un acoplamiento débil.
+     * 
+     *          Patrón utilizado: Inversión de Dependencia (Dependency Inversion)
+     *          - TheoryPanel no sabe quién implementa el callback
+     *          - Solo sabe "cuando ocurra X, llamo a esta función"
+     *          - MainWindow (o cualquier otro) proporciona la implementación
+     * 
+     *          Ventajas de este diseño:
+     *          1. TheoryPanel es reutilizable en otros contextos
+     *          2. Facilita testing unitario (podemos pasar un mock)
+     *          3. Evita dependencias circulares de includes
+     *          4. Cumple con el Principio de Responsabilidad Única (SRP)
+     * 
+     * @note El callback se almacena como std::function, lo que permite:
+     *       - Lambdas (como se usa en MainWindow)
+     *       - Functores
+     *       - std::bind
+     *       - Funciones libres
+     * 
+     * @example
+     *   // En MainWindow:
+     *   theoryPanel->setScenarioCallback([this](const wxString& name) {
+     *       this->loadScenarioByName(name);
+     *   });
+     * 
+     * @see https://en.cppreference.com/w/cpp/utility/functional/function
+     */
+    void setScenarioCallback(std::function<void(const wxString&)> callback);
+    
+    /**
+     * @brief Solicita la carga de un escenario mediante el callback registrado
+     * @param scenarioName Nombre del escenario a cargar
+     * @return true si el callback fue invocado, false si no hay callback registrado
+     * 
+     * @details Este método demuestra el uso de null-checks defensivos.
+     *          Siempre verificamos si el callback existe antes de llamarlo.
+     */
+    bool requestScenarioLoad(const wxString& scenarioName) const;
      
 private:
     void setupUI();
@@ -81,6 +127,20 @@ private:
     tp::education::TheoryRepository repository_;
     tp::education::TheoryMarkdownRenderer markdownRenderer_;
     tp::education::TheoryHtmlTemplate htmlTemplate_;
+    
+    /**
+     * @brief Callback para solicitudes de carga de escenarios
+     * @details Almacena la función proporcionada por setScenarioCallback().
+     *          Usamos std::function en lugar de un puntero a función crudo porque:
+     *          1. Puede capturar contexto (lambdas con [this])
+     *          2. Es type-safe en tiempo de compilación
+     *          3. Permite std::bind para partial application
+     *          4. Se puede verificar si está vacío (nullptr check implícito)
+     * 
+     * @note Inicializado a nullptr implícitamente (std::function vacío)
+     * @note No es necesario mutex porque wxWidgets es single-threaded para UI
+     */
+    std::function<void(const wxString&)> scenarioCallback_;
      
     wxDECLARE_EVENT_TABLE();
 };

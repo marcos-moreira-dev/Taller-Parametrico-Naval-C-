@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TallerParametrico.wxs
+  Definición principal del instalador MSI
+  
+  WiX Toolset Documentation: https://wixtoolset.org/documentation/
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  
+  <!-- Variables configurables -->
+  <?include Variables.wxi?>
+  
+  <Product Id="$(var.ProductCode)"
+           Name="$(var.ProductName)"
+           Language="$(var.ProductLanguage)"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.Manufacturer)"
+           UpgradeCode="$(var.UpgradeCode)">
+    
+    <!-- Información del paquete -->
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="$(var.ProductName) $(var.ProductVersion)"
+             Comments="Aplicación educativa de física de fluidos y campos vectoriales"
+             Manufacturer="$(var.Manufacturer)"
+             Languages="$(var.ProductLanguage)"
+             SummaryCodepage="1252" />
+    
+    <!-- Compresión del instalador -->
+    <MediaTemplate EmbedCab="yes" />
+    
+    <!-- Icono del instalador -->
+    <Icon Id="ProductIcon.ico" SourceFile="$(var.SourceDir)\assets\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon.ico" />
+    
+    <!-- Información para "Agregar o quitar programas" -->
+    <Property Id="ARPHELPLINK" Value="$(var.HelpLink)" />
+    <Property Id="ARPURLINFOABOUT" Value="$(var.AboutLink)" />
+    <Property Id="ARPURLUPDATEINFO" Value="$(var.UpdateLink)" />
+    <Property Id="ARPCOMMENTS" Value="$(var.Comments)" />
+    
+    <!-- Condiciones de lanzamiento -->
+    <Condition Message="Este instalador requiere Windows 7 o superior.">
+      <![CDATA[Installed OR (VersionNT >= 601)]]>
+    </Condition>
+    
+    <Condition Message="Se requiere arquitectura de 64 bits.">
+      <![CDATA[Installed OR VersionNT64]]>
+    </Condition>
+    
+    <!-- Major Upgrade: Desinstala versiones anteriores -->
+    <MajorUpgrade DowngradeErrorMessage="Ya está instalada una versión más reciente de $(var.ProductName)." 
+                  Schedule="afterInstallInitialize" />
+    
+    <!-- Estructura de directorios -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- Program Files -->
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="ManufacturerFolder" Name="$(var.Manufacturer)">
+          <Directory Id="INSTALLFOLDER" Name="$(var.ProductShortName)">
+            <!-- Contenido se define más abajo -->
+          </Directory>
+        </Directory>
+      </Directory>
+      
+      <!-- Menú Inicio -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)" />
+      </Directory>
+      
+      <!-- Escritorio -->
+      <Directory Id="DesktopFolder" />
+    </Directory>
+    
+    <!-- Características del producto -->
+    <Feature Id="ProductFeature" 
+             Title="$(var.ProductName)" 
+             Level="1"
+             Display="expand"
+             ConfigurableDirectory="INSTALLFOLDER">
+      
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="Shortcuts" />
+      
+    </Feature>
+    
+    <!-- Interfaz de usuario -->
+    <UIRef Id="WixUI_InstallDir" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    
+    <!-- Variables de la UI -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Iniciar $(var.ProductName) al cerrar el instalador" />
+    
+    <!-- Licencia -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.InstallerDir)\LICENSE.rtf" />
+    
+    <!-- Imágenes personalizadas (opcional) -->
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.InstallerDir)\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.InstallerDir)\dialog.bmp" />
+    
+  </Product>
+  
+  <!-- Grupos de componentes -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      
+      <!-- Ejecutable principal -->
+      <Component Id="MainExecutable" Guid="{PUT-GUID-HERE-1234-567890ABCDEF}">
+        <File Id="TallerParametrico.exe" 
+              Source="$(var.SourceDir)\build\release\bin\TallerParametrico.exe" 
+              KeyPath="yes"
+              Checksum="yes">
+          <Shortcut Id="StartMenuShortcut"
+                    Directory="ApplicationProgramsFolder"
+                    Name="$(var.ProductName)"
+                    Description="Taller de física de fluidos y campos vectoriales"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="ProductIcon.ico"
+                    IconIndex="0"
+                    Advertise="yes" />
+        </File>
+      </Component>
+      
+      <!-- Runtime requerido por wxWebView/Edge -->
+      <Component Id="WebViewRuntime" Guid="{PUT-GUID-HERE-2345-678901BCDEF0}">
+        <File Id="WebView2Loader.dll" Source="$(var.SourceDir)\build\release\bin\WebView2Loader.dll" />
+      </Component>
+      
+      <!-- Assets (imágenes, teoría, escenarios) -->
+      <Component Id="Assets" Guid="{PUT-GUID-HERE-3456-789012CDEF01}">
+        <File Id="Readme.txt" Source="$(var.SourceDir)\README.md" />
+      </Component>
+      
+    </ComponentGroup>
+    
+    <!-- Accesos directos adicionales -->
+    <ComponentGroup Id="Shortcuts" Directory="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="{PUT-GUID-HERE-4567-890123DEF012}">
+        <Shortcut Id="DesktopShortcut"
+                  Name="$(var.ProductName)"
+                  Description="Taller de física de fluidos y campos vectoriales"
+                  Target="[INSTALLFOLDER]TallerParametrico.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="ProductIcon.ico"
+                  IconIndex="0" />
+        <RemoveFolder Id="DesktopFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" 
+                       Key="Software\$(var.Manufacturer)\$(var.ProductShortName)" 
+                       Name="installed" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+    
+  </Fragment>
+  
+  <!-- Acciones personalizadas -->
+  <Fragment>
+    <!-- La build usa MinGW con runtime estático, no requiere VC++ Redistributable. -->
+  </Fragment>
+  
+</Wix>

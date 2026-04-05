@@ -4,50 +4,9 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    PRESENTATION LAYER                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │  MainWindow  │  │ TheoryPanel  │  │ EditorPanel  │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │  LeftPanel   │  │ RightPanel   │  │ BottomPanel  │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              SimulationCanvas                        │    │
-│  │  ┌──────────────┐  ┌──────────────┐                │    │
-│  │  │ SimpleGraph  │  │ WaterParticle│                │    │
-│  │  └──────────────┘  └──────────────┘                │    │
-│  └─────────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   APPLICATION LAYER                          │
-│                    ExperimentService                         │
-│         (gestión de estado y configuración)                  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    SIMULATION LAYER                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │  Integrators │  │PhysicsModel  │  │  Runner      │       │
-│  │  (Euler/RK4) │  │ (fuerzas)    │  │ (control)    │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      DOMAIN LAYER                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │ Scenario │  │VectorField│  │   Boat   │  │  Motor   │    │
-│  │ (mapa)   │  │ (fluido)  │  │ (objeto) │  │(propuls) │    │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
 │                      SHARED LAYER                            │
-│              Vec2, Logger, Enums, Utils                      │
+│  Vec2, Logger, Enums, TraceLogger, Constants                 │
+│  (utilidades sin dependencias de otras capas)                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,9 +46,11 @@
 
 ### 2.2 Application Layer (`src/application/`)
 
-**Responsabilidad**: Lógica de aplicación y estado
+**Responsabilidad**: Lógica de aplicación, coordinación y estado
 
 #### ExperimentService
+
+Servicio principal que orquesta experimentos completos:
 
 ```cpp
 class ExperimentService {
@@ -101,6 +62,41 @@ class ExperimentService {
     ExperimentConfig& getConfig();
 };
 ```
+
+#### SimulationCoordinator (Patrón Mediator)
+
+**Archivo**: `application/SimulationCoordinator.hpp/cpp`
+
+El coordinador es el **único** gestor del ciclo de vida de simulaciones. Implementa el patrón Mediator para desacoplar UI de física:
+
+```cpp
+class SimulationCoordinator {
+    // Máquina de estados
+    SimulationState getCurrentState();  // Stopped, Running, Paused, Finished
+    
+    // Control
+    void start();
+    void pause();
+    void stop();
+    void reset();
+    bool step();  // Ejecuta un paso de integración
+    
+    // Callbacks (Patrón Observer)
+    void registerStateCallback(StateCallback callback);
+    void registerUpdateCallback(UpdateCallback callback);
+    
+    // Métricas
+    SimulationStats getStatistics();  // Incluye eficiencia de ruta, desplazamiento neto
+};
+```
+
+**Patrones utilizados**:
+- **Mediator**: Coordina entre UI (MainWindow) y SimulationRunner
+- **Observer**: Callbacks para notificar cambios sin acoplamiento directo
+- **State Machine**: Estados bien definidos con transiciones válidas
+
+**¿Por qué no SimulationController?**
+Anteriormente se consideró crear un `SimulationController` separado, pero eso habría creado **redundancia arquitectónica**. `SimulationCoordinator` ya cubre todas las necesidades de coordinación. Mantener ambos violaría el principio DRY (Don't Repeat Yourself).
 
 **Estructura de Configuración**:
 
@@ -208,12 +204,42 @@ class Scenario {
 
 ### 2.5 Shared Layer (`src/shared/`)
 
-**Responsabilidad**: Utilidades comunes
+**Responsabilidad**: Utilidades comunes y constantes del sistema
 
 ```cpp
 // Vec2.hpp - Vector 2D template
 // Logger.hpp - Sistema de logging
 // Enums.hpp - Enumeraciones compartidas
+// Constants.hpp - Constantes centralizadas (anti-magic numbers)
+```
+
+#### Constants.hpp - Configuración Centralizada
+
+**Propósito**: Eliminar "magic numbers" dispersos en el código.
+
+```cpp
+namespace tp::constants {
+    inline constexpr double DEFAULT_FRAME_TIME_MS = 33.0;  // ~30 FPS
+    inline constexpr double PI = 3.14159265358979323846;
+    inline constexpr int MAX_WATER_PARTICLES = 800;
+    inline constexpr double WATER_DENSITY_KG_M3 = 1000.0;
+    // ... etc
+}
+```
+
+**Beneficios**:
+1. **Legibilidad**: `DEFAULT_FRAME_TIME_MS` explica mejor que `33`
+2. **Mantenibilidad**: Cambiar en un solo lugar
+3. **Consistencia**: Valores uniformes en todo el sistema
+4. **Documentación**: Los nombres documentan la intención
+
+**Ejemplo de uso**:
+```cpp
+// ANTES (magic number):
+timer_->Start(33);
+
+// DESPUÉS (constante nombrada):
+timer_->Start(tp::constants::DEFAULT_FRAME_TIME_MS);
 ```
 
 ## 3. FLUJO DE DATOS

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(TallerParametrico 
-    VERSION 0.1.0
+    VERSION 1.0.0
     DESCRIPTION "Taller Parametrico de Navegacion y Campos 2D"
     LANGUAGES CXX
 )
@@ -37,10 +37,10 @@ add_subdirectory(src/education)
 
 if(BUILD_GUI)
     # Buscar wxWidgets en múltiples ubicaciones
-    # NOTA: wx_installed está en la raíz del proyecto, no en build/
-    set(WX_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/wx_installed")
-    set(WX_BUILD_TREE "${CMAKE_CURRENT_SOURCE_DIR}/wxwidgets")
-    set(WX_INSTALL_DIR2 "${CMAKE_CURRENT_SOURCE_DIR}/build/wx_installed")
+    # Preferimos mantener todos los artefactos dentro de build/
+    set(WX_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/wx_installed")
+    set(WX_BUILD_TREE "${CMAKE_CURRENT_SOURCE_DIR}/build/wxwidgets")
+    set(WX_INSTALL_DIR2 "${CMAKE_CURRENT_SOURCE_DIR}/wx_installed")
     set(WX_INSTALL_DIR3 "${CMAKE_CURRENT_BINARY_DIR}/wx_installed")
     set(WX_DOWNLOAD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../wxWidgets-3.3.2")
     
@@ -80,6 +80,7 @@ if(BUILD_GUI)
         set(wxWidgets_LIBRARY_DIRS ${WX_INSTALL_DIR}/lib/gcc_x64_lib)
         # Especificar librerías wxWidgets explícitamente (orden: dependientes primero)
         set(wxWidgets_LIBRARIES 
+            ${WX_INSTALL_DIR}/lib/gcc_x64_lib/wxmsw33u_webview.a
             ${WX_INSTALL_DIR}/lib/gcc_x64_lib/wxmsw33u_aui.a
             ${WX_INSTALL_DIR}/lib/gcc_x64_lib/wxmsw33u_html.a
             ${WX_INSTALL_DIR}/lib/gcc_x64_lib/wxmsw33u_adv.a

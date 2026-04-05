@@ -23,6 +23,7 @@
 #include <mutex>
 #include <map>
 #include <functional>
+#include <thread>  // Requerido para std::thread::id y std::this_thread
 
 namespace tp::shared {
 

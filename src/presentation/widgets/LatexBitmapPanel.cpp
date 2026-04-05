@@ -112,14 +112,13 @@ wxString LatexBitmapPanel::buildHtml() const {
         "<!DOCTYPE html><html><head><meta charset='utf-8'><meta http-equiv='X-UA-Compatible' content='IE=edge'>"
         "<base href='{{BASE}}'><link rel='stylesheet' href='katex/katex.min.css'>"
         "<style>"
-        "html,body{margin:0;padding:0;background:#ffffff;color:{{COLOR}};overflow:visible;font-family:'Cambria Math','Times New Roman',serif;}"
-        "body{padding:20px 18px 26px 18px;}"
-        "#formula-root{width:100%;display:flex;justify-content:flex-start;align-items:flex-start;padding:10px 10px 10px 18px;box-sizing:border-box;}"
-        "#formula{font-size:0.98rem;line-height:1.25;min-height:{{HEIGHT}}px;display:block;text-align:left;overflow:auto;padding-top:6px;padding-bottom:6px;padding-left:0;padding-right:10px;width:100%;}"
+        "html,body{margin:0;padding:0;background:#ffffff;color:{{COLOR}};overflow:hidden;font-family:'Cambria Math','Times New Roman',serif;}"
+        "body{padding:18px 22px 22px 22px;box-sizing:border-box;}"
+        "#formula-root{width:100%;display:block;padding:0;box-sizing:border-box;}"
+        "#formula{font-size:1.04rem;line-height:1.35;min-height:{{HEIGHT}}px;display:block;text-align:left;overflow-x:hidden;overflow-y:auto;padding:6px 8px 8px 8px;width:100%;box-sizing:border-box;}"
         "#fallback{display:none;color:#8a2d2d;font:13px 'Segoe UI',Arial,sans-serif;margin-top:8px;}"
         "#raw{display:none;white-space:pre-wrap;font:14px 'Consolas','Courier New',monospace;}"
-        ".formula-line{margin:0 0 16px 0;}"
-        ".katex-display{margin:0.55em 0;overflow:visible;padding:6px 0 10px 0;text-align:left !important;}"
+        ".katex-display{margin:0.35em 0 0.65em 0;overflow:visible;padding:2px 0 8px 0;text-align:left !important;}"
         ".katex-display>.katex{text-align:left !important;display:inline-block;}"
         "</style></head><body>"
         "<div id='formula-root'><div id='formula'></div></div>"
@@ -156,14 +155,10 @@ void LatexBitmapPanel::OnWebViewLoaded(wxWebViewEvent& event) {
         "  var src = \"" + LatexBitmapPanel::escapeForJsString(normalizedLatex()) + "\";"
         "  var host = document.getElementById('formula');"
         "  host.innerHTML = ''; host.scrollTop = 0; host.scrollLeft = 0;"
-        "  var lines = src.split(/\\n+/).map(function(s){ return s.trim(); }).filter(function(s){ return s.length > 0; });"
-        "  if(lines.length === 0){ throw new Error('empty formula'); }"
-        "  lines.forEach(function(line){"
-        "    var node = document.createElement('div');"
-        "    node.className = 'formula-line';"
-        "    host.appendChild(node);"
-        "    katex.render(line, node, {displayMode:true, throwOnError:false, fleqn:true});"
-        "  });"
+        "  if(!src || !src.trim()){ throw new Error('empty formula'); }"
+        "  var node = document.createElement('div');"
+        "  host.appendChild(node);"
+        "  katex.render(src, node, {displayMode:true, throwOnError:false, fleqn:true, strict:'ignore'});"
         "} catch (e) {"
         "  document.getElementById('formula').style.display='none';"
         "  document.getElementById('fallback').style.display='block';"
@@ -190,6 +185,30 @@ wxString LatexBitmapPanel::normalizedLatex() const {
         result += line;
     }
 
+    if (result.Contains("\\begin{")) {
+        return result;
+    }
+
+    if (result.Contains("\n")) {
+        wxArrayString parts = wxSplit(result, '\n');
+        wxString joined;
+        for (size_t i = 0; i < parts.size(); ++i) {
+            wxString line = parts[i];
+            line.Trim(true);
+            line.Trim(false);
+            if (line.IsEmpty()) {
+                continue;
+            }
+            if (!joined.IsEmpty()) {
+                joined += " \\\\ ";
+            }
+            joined += line;
+        }
+        if (!joined.IsEmpty()) {
+            result = "\\begin{aligned}" + joined + "\\end{aligned}";
+        }
+    }
+
     if (result.IsEmpty()) {
         result = latex_;
     }
@@ -208,7 +227,7 @@ int LatexBitmapPanel::estimatedHeight() const {
         }
     }
 
-    int height = 118 + std::max(1, count) * 34;
+    int height = 110 + std::max(1, count) * 48;
     if (latex_.Contains("\\frac") || latex_.Contains("\\dfrac") || latex_.Contains("\\int") || latex_.Contains("\\oint") || latex_.Contains("\\sum") || latex_.Contains("\\nabla")) {
         height += 42;
     }

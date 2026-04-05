@@ -369,4 +369,67 @@ void TheoryPanel::onPrevious(wxCommandEvent& event) {
     previousConcept();
 }
 
+/* ============================================================================
+ * SECCIÓN: Implementación del Patrón Observer/Callback
+ * ============================================================================
+ * 
+ * Esta sección demuestra un patrón de diseño fundamental en desarrollo de
+ * software: el patrón Observer (también llamado Callback o Listener).
+ * 
+ * PROBLEMA:
+ * TheoryPanel necesita notificar a alguien (MainWindow) cuando el usuario
+ * quiere cargar un escenario desde la vista de teoría. Pero TheoryPanel
+ * no debería depender directamente de MainWindow (acoplamiento fuerte).
+ * 
+ * SOLUCIÓN:
+ * Usamos std::function como un contrato: "Yo te aviso cuando pase X, tú
+ * decides qué hacer". MainWindow registra una función que se llamará.
+ * 
+ * BENEFICIOS:
+ * 1. Desacoplamiento: TheoryPanel no sabe de MainWindow
+ * 2. Testabilidad: Podemos probar TheoryPanel con mocks
+ * 3. Reusabilidad: TheoryPanel funciona en cualquier contexto
+ * 4. Cumple SOLID:
+ *    - SRP: TheoryPanel solo maneja UI de teoría
+ *    - DIP: Depende de abstracción (std::function), no de concreción
+ * 
+ * ============================================================================ */
+
+void TheoryPanel::setScenarioCallback(std::function<void(const wxString&)> callback) {
+    /**
+     * @internal Usamos std::move para transferir ownership del callable.
+     * Esto es una optimización: evita copiar la lambda si contiene capturas
+     * grandes (ej: [this] con objetos pesados).
+     * 
+     * Si callback es nullptr o vacío, std::function::operator= lo maneja
+     * correctamente: scenarioCallback_ queda en estado "vacío" (equivalente
+     * a nullptr para punteros a función tradicionales).
+     */
+    scenarioCallback_ = std::move(callback);
+}
+
+bool TheoryPanel::requestScenarioLoad(const wxString& scenarioName) const {
+    /**
+     * @internal Verificación defensiva: std::function tiene operator bool
+     * que retorna false si no tiene un callable asignado. Esto es equivalente
+     * a verificar ptr != nullptr para punteros a función.
+     * 
+     * Este patrón de "verificar antes de llamar" es fundamental para evitar
+     * undefined behavior. En C++20 también podríamos usar std::observer_ptr
+     * para punteros observadores, pero para callbacks std::function es ideal.
+     */
+    if (!scenarioCallback_) {
+        // No hay callback registrado - esto es válido, no es un error
+        // El panel puede funcionar independientemente de si alguien
+        // escucha las solicitudes de escenario o no
+        return false;
+    }
+    
+    // Invocamos el callback con el nombre del escenario
+    // La sintaxis es igual que llamar una función normal - esto es la
+    // magna de std::function: unifica la interfaz de cualquier callable
+    scenarioCallback_(scenarioName);
+    return true;
+}
+
 } // namespace tp::presentation

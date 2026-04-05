@@ -18,7 +18,7 @@ void test_motor_constant() {
 void test_motor_thrust() {
     auto motor = Motor::constant(3.0, 1.57);
     
-    Vec2d thrust = motor.getThrust(0.0);
+    Vec2d thrust = motor.getThrustVector(0.0);
     assert(std::abs(thrust.x - 0.0) < 0.001);
     assert(std::abs(thrust.y - 3.0) < 0.001);
     

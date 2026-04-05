@@ -1,5 +1,5 @@
 #include "widgets/SimpleGraph.hpp"
-#include <wx/dcclient.h>
+#include <wx/dcbuffer.h>
 
 namespace tp::presentation {
 
@@ -16,6 +16,7 @@ SimpleGraph::SimpleGraph(wxWindow* parent, const wxString& title)
 {
     SetBackgroundColour(wxColour(255, 255, 255));
     SetMinSize(wxSize(200, 120));
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
 void SimpleGraph::addDataPoint(double time, double value)
@@ -24,6 +25,10 @@ void SimpleGraph::addDataPoint(double time, double value)
     point.time = time;
     point.value = value;
     dataPoints_.push_back(point);
+
+    if (dataPoints_.size() > SimpleGraph::MAX_POINTS) {
+        dataPoints_.erase(dataPoints_.begin(), dataPoints_.begin() + (dataPoints_.size() - SimpleGraph::MAX_POINTS));
+    }
     
     // Auto-escalar eje Y si es necesario
     if (value < yMin_) yMin_ = value * 1.1;
@@ -35,6 +40,8 @@ void SimpleGraph::addDataPoint(double time, double value)
 void SimpleGraph::clearData()
 {
     dataPoints_.clear();
+    yMin_ = 0.0;
+    yMax_ = 10.0;
     Refresh();
 }
 
@@ -54,7 +61,7 @@ void SimpleGraph::setColor(const wxColour& color)
 void SimpleGraph::onPaint(wxPaintEvent& event)
 {
     (void)event;
-    wxPaintDC dc(this);
+    wxAutoBufferedPaintDC dc(this);
     drawGraph(dc);
 }
 
@@ -72,6 +79,9 @@ void SimpleGraph::drawGraph(wxDC& dc)
     
     int graphWidth = width - marginLeft - marginRight;
     int graphHeight = height - marginTop - marginBottom;
+    if (graphWidth <= 0 || graphHeight <= 0) {
+        return;
+    }
     
     // Fondo blanco
     dc.SetBrush(wxBrush(wxColour(255, 255, 255)));
@@ -109,6 +119,9 @@ void SimpleGraph::drawGraph(wxDC& dc)
     
     // Dibujar línea de datos
     dc.SetPen(wxPen(graphColor_, 2));
+    dc.SetClippingRegion(marginLeft, marginTop, graphWidth + 1, graphHeight + 1);
+
+    const double yRange = (std::abs(yMax_ - yMin_) < 1e-9) ? 1.0 : (yMax_ - yMin_);
     
     for (size_t i = 1; i < dataPoints_.size(); ++i) {
         double t1 = dataPoints_[i-1].time;
@@ -117,12 +130,18 @@ void SimpleGraph::drawGraph(wxDC& dc)
         double v2 = dataPoints_[i].value;
         
         int x1 = marginLeft + (int)((t1 - tMin) / (tMax - tMin) * graphWidth);
-        int y1 = height - marginBottom - (int)((v1 - yMin_) / (yMax_ - yMin_) * graphHeight);
+        int y1 = height - marginBottom - (int)((v1 - yMin_) / yRange * graphHeight);
         int x2 = marginLeft + (int)((t2 - tMin) / (tMax - tMin) * graphWidth);
-        int y2 = height - marginBottom - (int)((v2 - yMin_) / (yMax_ - yMin_) * graphHeight);
+        int y2 = height - marginBottom - (int)((v2 - yMin_) / yRange * graphHeight);
+
+        x1 = std::clamp(x1, marginLeft, width - marginRight);
+        x2 = std::clamp(x2, marginLeft, width - marginRight);
+        y1 = std::clamp(y1, marginTop, height - marginBottom);
+        y2 = std::clamp(y2, marginTop, height - marginBottom);
         
         dc.DrawLine(x1, y1, x2, y2);
     }
+    dc.DestroyClippingRegion();
     
     // Dibujar etiquetas de ejes
     dc.SetFont(wxFont(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));

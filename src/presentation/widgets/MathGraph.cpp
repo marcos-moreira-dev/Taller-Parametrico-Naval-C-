@@ -9,9 +9,37 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 #include <wx/dcbuffer.h>
 
 namespace tp::presentation {
+
+namespace {
+
+double niceStep(double range, int targetTicks) {
+    if (range <= 0.0) {
+        return 1.0;
+    }
+    const double rough = range / std::max(1, targetTicks);
+    const double exponent = std::floor(std::log10(rough));
+    const double base = std::pow(10.0, exponent);
+    const double fraction = rough / base;
+    if (fraction <= 1.0) return 1.0 * base;
+    if (fraction <= 2.0) return 2.0 * base;
+    if (fraction <= 5.0) return 5.0 * base;
+    return 10.0 * base;
+}
+
+wxString formatTick(double value, double step) {
+    int decimals = 0;
+    if (step < 1.0) {
+        decimals = static_cast<int>(std::ceil(-std::log10(step)));
+        decimals = std::clamp(decimals, 0, 4);
+    }
+    return wxString::Format(wxString::Format(wxT("%%.%df"), decimals), value);
+}
+
+} // namespace
 
 wxBEGIN_EVENT_TABLE(MathGraph, wxPanel)
     EVT_PAINT(MathGraph::OnPaint)
@@ -90,12 +118,15 @@ wxPoint MathGraph::worldToScreen(double x, double y) {
     int width = GetClientSize().GetWidth();
     int height = GetClientSize().GetHeight();
     
-    int margin = 40;
-    int plotWidth = width - 2 * margin;
-    int plotHeight = height - 2 * margin;
+    int marginLeft = 58;
+    int marginRight = 28;
+    int marginTop = 48;
+    int marginBottom = 46;
+    int plotWidth = std::max(1, width - marginLeft - marginRight);
+    int plotHeight = std::max(1, height - marginTop - marginBottom);
     
-    int screenX = margin + static_cast<int>((x - xMin_) / (xMax_ - xMin_) * plotWidth);
-    int screenY = height - margin - static_cast<int>((y - yMin_) / (yMax_ - yMin_) * plotHeight);
+    int screenX = marginLeft + static_cast<int>((x - xMin_) / (xMax_ - xMin_) * plotWidth);
+    int screenY = height - marginBottom - static_cast<int>((y - yMin_) / (yMax_ - yMin_) * plotHeight);
     
     return wxPoint(screenX, screenY);
 }
@@ -130,9 +161,10 @@ void MathGraph::OnPaint(wxPaintEvent& event) {
 
 void MathGraph::drawGrid(wxDC& dc) {
     dc.SetPen(wxPen(wxColour(230, 230, 230), 1));
+    const double xStep = niceStep(xMax_ - xMin_, 10);
+    const double yStep = niceStep(yMax_ - yMin_, 10);
     
     // Líneas verticales
-    double xStep = std::pow(10, std::floor(std::log10((xMax_ - xMin_) / 10)));
     for (double x = std::ceil(xMin_ / xStep) * xStep; x <= xMax_; x += xStep) {
         wxPoint p1 = worldToScreen(x, yMin_);
         wxPoint p2 = worldToScreen(x, yMax_);
@@ -140,7 +172,6 @@ void MathGraph::drawGrid(wxDC& dc) {
     }
     
     // Líneas horizontales
-    double yStep = std::pow(10, std::floor(std::log10((yMax_ - yMin_) / 10)));
     for (double y = std::ceil(yMin_ / yStep) * yStep; y <= yMax_; y += yStep) {
         wxPoint p1 = worldToScreen(xMin_, y);
         wxPoint p2 = worldToScreen(xMax_, y);
@@ -178,21 +209,21 @@ void MathGraph::drawAxes(wxDC& dc) {
     dc.SetTextForeground(wxColour(80, 80, 80));
     
     // Etiquetas X
-    double xStep = std::pow(10, std::floor(std::log10((xMax_ - xMin_) / 5)));
+    double xStep = niceStep(xMax_ - xMin_, 5);
     for (double x = std::ceil(xMin_ / xStep) * xStep; x <= xMax_; x += xStep) {
         if (std::abs(x) > xStep / 10) {
             wxPoint pos = worldToScreen(x, 0);
-            wxString label = wxString::Format(wxT("%.0f"), x);
+            wxString label = formatTick(x, xStep);
             dc.DrawText(label, pos.x - 10, pos.y + 5);
         }
     }
     
     // Etiquetas Y
-    double yStep = std::pow(10, std::floor(std::log10((yMax_ - yMin_) / 5)));
+    double yStep = niceStep(yMax_ - yMin_, 5);
     for (double y = std::ceil(yMin_ / yStep) * yStep; y <= yMax_; y += yStep) {
         if (std::abs(y) > yStep / 10) {
             wxPoint pos = worldToScreen(0, y);
-            wxString label = wxString::Format(wxT("%.0f"), y);
+            wxString label = formatTick(y, yStep);
             dc.DrawText(label, pos.x + 5, pos.y - 8);
         }
     }
@@ -204,6 +235,8 @@ void MathGraph::drawAxes(wxDC& dc) {
 }
 
 void MathGraph::drawFunctions(wxDC& dc) {
+    wxSize size = GetClientSize();
+    dc.SetClippingRegion(58, 48, std::max(1, size.GetWidth() - 86), std::max(1, size.GetHeight() - 94));
     for (const auto& func : functions_) {
         dc.SetPen(wxPen(func.color, 2));
         
@@ -229,20 +262,46 @@ void MathGraph::drawFunctions(wxDC& dc) {
             }
         }
     }
+    dc.DestroyClippingRegion();
 }
 
 void MathGraph::drawVectorField(wxDC& dc) {
     if (!hasVectorField_) return;
-    
-    dc.SetPen(wxPen(wxColour(64, 96, 255, 180), 2));
-    dc.SetBrush(wxBrush(wxColour(64, 96, 255, 140)));
-    
+
+    wxSize size = GetClientSize();
+    dc.SetClippingRegion(58, 48, std::max(1, size.GetWidth() - 86), std::max(1, size.GetHeight() - 94));
+
+    std::vector<std::tuple<double, double, double, double, double>> samples;
+    double maxMagnitude = 0.0;
     for (double x = xMin_; x <= xMax_; x += vectorStep_) {
         for (double y = yMin_; y <= yMax_; y += vectorStep_) {
             auto vec = vectorField_(x, y);
-            
+            const double mag = std::sqrt(vec.first * vec.first + vec.second * vec.second);
+            samples.emplace_back(x, y, vec.first, vec.second, mag);
+            maxMagnitude = std::max(maxMagnitude, mag);
+        }
+    }
+    if (maxMagnitude < 1e-9) {
+        dc.DestroyClippingRegion();
+        return;
+    }
+    
+    for (const auto& sample : samples) {
+            double x = std::get<0>(sample);
+            double y = std::get<1>(sample);
+            double vx = std::get<2>(sample);
+            double vy = std::get<3>(sample);
+            double mag = std::get<4>(sample);
+            const double normalized = std::clamp(mag / maxMagnitude, 0.0, 1.0);
+            const wxColour color(
+                static_cast<unsigned char>(140 + normalized * 115.0),
+                static_cast<unsigned char>(200 + normalized * 55.0),
+                255,
+                255);
+            dc.SetPen(wxPen(color, normalized < 0.4 ? 1 : 2));
+
             wxPoint start = worldToScreen(x, y);
-            wxPoint end = worldToScreen(x + vec.first * 0.55, y + vec.second * 0.55);
+            wxPoint end = worldToScreen(x + vx * 0.55, y + vy * 0.55);
             
             dc.DrawLine(start.x, start.y, end.x, end.y);
             
@@ -255,11 +314,13 @@ void MathGraph::drawVectorField(wxDC& dc) {
             arrowX = end.x - 9 * std::cos(angle + 0.5);
             arrowY = end.y - 9 * std::sin(angle + 0.5);
             dc.DrawLine(end.x, end.y, arrowX, arrowY);
-        }
     }
+    dc.DestroyClippingRegion();
 }
 
 void MathGraph::drawTrajectories(wxDC& dc) {
+    wxSize size = GetClientSize();
+    dc.SetClippingRegion(58, 48, std::max(1, size.GetWidth() - 86), std::max(1, size.GetHeight() - 94));
     for (const auto& traj : trajectories_) {
         if (traj.points.size() < 2) continue;
         
@@ -279,6 +340,7 @@ void MathGraph::drawTrajectories(wxDC& dc) {
             dc.DrawCircle(pos.x, pos.y, 3);
         }
     }
+    dc.DestroyClippingRegion();
 }
 
 void MathGraph::drawTitle(wxDC& dc) {

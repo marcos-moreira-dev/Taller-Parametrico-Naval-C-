@@ -5,6 +5,7 @@
 #endif
 
 #include "SimulationCanvas.hpp"
+#include "FieldArrowSampler.hpp"
 #include "main_window/MainWindow.hpp"
 #include <cmath>
 
@@ -54,6 +55,29 @@ SimulationCanvas::SimulationCanvas(wxWindow* parent)
 }
 
 void SimulationCanvas::setScenario(tp::domain::Scenario* scenario) {
+    /**
+     * @internal IMPLEMENTACIÓN DEL PATRÓN OBSERVER CON NULL SAFETY
+     * 
+     * Este método demuestra varios principios importantes:
+     * 
+     * 1. NULL SAFETY (SEGURIDAD ANTE NULOS):
+     *    - Aceptamos nullptr como valor válido (canvas sin escenario)
+     *    - Verificamos scenario_ != nullptr antes de dereferenciar
+     *    - Esto previene crashes si se llama antes de inicializar
+     * 
+     * 2. PRINCIPIO DE NO ROBERY (NO ROBAR RESPONSABILIDADES):
+     *    - No destruimos el escenario anterior (no somos dueños)
+     *    - No creamos copia (sería ineficiente para escenarios grandes)
+     *    - Solo guardamos referencia para observación/renderizado
+     * 
+     * 3. AUTO-CONFIGURACIÓN DEFENSIVA:
+     *    - Si el escenario es válido, calculamos automáticamente la escala
+     *    - Centramos el escenario en el canvas
+     *    - Esto evita que el usuario tenga que configurar manualmente
+     * 
+     * @note El nullptr es un estado válido: representa "sin escenario"
+     *       y es útil durante la inicialización o al cerrar experimentos.
+     */
     scenario_ = scenario;
     if (scenario_) {
         // Calcular escala para que quepa todo el escenario
@@ -70,10 +94,29 @@ void SimulationCanvas::setScenario(tp::domain::Scenario* scenario) {
             waterAnimation_->start(scenario_, field_);
         }
     }
+    // Incluso si scenario_ es nullptr, llamamos a Refresh() para limpiar
+    // el canvas y mostrar el fondo vacío (celeste claro)
     Refresh();
 }
 
 void SimulationCanvas::setField(tp::domain::VectorField* field) {
+    /**
+     * @internal CAMBIO DINÁMICO DE CAMPO VECTORIAL
+     * 
+     * A diferencia de setScenario(), este método:
+     * - No recalcula escala (el campo no afecta dimensiones)
+     * - Notifica al sistema de animación si existe
+     * - Permite cambiar el campo durante la simulación en tiempo real
+     * 
+     * CASOS DE USO:
+     * 1. Usuario cambia de tipo de campo (uniforme → radial → etc.)
+     * 2. Carga de escenario predefinido con campo específico
+     * 3. Campo personalizado desde expresiones matemáticas
+     * 
+     * NULL SAFETY:
+     * - nullptr es válido: oculta el campo vectorial visualmente
+     * - waterAnimation_->updateField(nullptr) es seguro si verificamos existencia
+     */
     field_ = field;
     if (waterAnimation_) {
         waterAnimation_->updateField(field);
@@ -82,12 +125,30 @@ void SimulationCanvas::setField(tp::domain::VectorField* field) {
 }
 
 void SimulationCanvas::setBoat(tp::domain::Boat* boat) {
+    /**
+     * @internal ASIGNACIÓN DE BOTE CON POSICIÓN CACHEADA
+     * 
+     * PATRÓN: Doble buffering de posición
+     * - boatX_, boatY_ son cachés de la última posición conocida
+     * - Esto permite renderizar el bote incluso si boat_ es null temporalmente
+     * - Útil durante transiciones o cuando el bote se destruye/recrea
+     * 
+     * CASOS:
+     * 1. boat != nullptr: Actualizamos caché desde el objeto Boat
+     * 2. boat == nullptr: Mantenemos última posición conocida (boatX_, boatY_)
+     *    para evitar que el bote desaparezca repentinamente de la pantalla
+     * 
+     * @note En modo Editor puro, boat_ puede ser nullptr permanentemente
+     *       ya que no hay simulación activa.
+     */
     boat_ = boat;
     if (boat_) {
         auto pos = boat_->getPosition();
         boatX_ = pos.x;
         boatY_ = pos.y;
     }
+    // Si boat_ es nullptr, mantenemos boatX_/boatY_ para renderizado
+    // de "última posición conocida" (ghost boat)
     Refresh();
 }
 
@@ -97,11 +158,8 @@ void SimulationCanvas::setScale(double scale) {
 }
 
 void SimulationCanvas::setMode(AppMode mode) {
-    // Actualizar comportamiento según el modo
-    // En modo Editor, permitir edición
-    // En modo Simulación, mostrar controles de animación
-    // En modo Teoría, mostrar overlays educativos
-    (void)mode; // Por ahora solo marcamos como usado
+    editorMode_ = (mode == AppMode::Editor);
+    updateCursor();
     Refresh();
 }
 
@@ -254,59 +312,62 @@ void SimulationCanvas::drawScenario(wxDC& dc) {
 }
 
 void SimulationCanvas::drawVectorField(wxDC& dc) {
-    if (!field_) return;
+    if (!field_ || !scenario_) return;
 
-    int width = scenario_->getWidth();
-    int height = scenario_->getHeight();
-    
-    // Dibujar vector cada 3 celdas para mayor visibilidad
-    for (int y = 1; y < height; y += 3) {
-        for (int x = 1; x < width; x += 3) {
-            if (scenario_ && scenario_->getCell(x, y) != tp::shared::CellType::Water) {
-                continue;
-            }
-            auto vec = field_->getValue(x, y);
+    const auto arrows = FieldArrowSampler::sample(scenario_, field_, 3, 0.0001, 0.5);
+    if (arrows.empty()) {
+        return;
+    }
 
-            wxPoint center = worldToScreen(x + 0.5, y + 0.5);
+    double maxMagnitude = 0.0;
+    for (const auto& arrow : arrows) {
+        maxMagnitude = std::max(maxMagnitude, arrow.magnitude);
+    }
+    if (maxMagnitude < 1e-9) {
+        return;
+    }
 
-            // Escalar el vector para visualización
-            double length = std::sqrt(vec.x * vec.x + vec.y * vec.y);
-            if (length > 0.002) {
-                double normalized = std::clamp(length / 10.0, 0.0, 1.0);
-                int red = static_cast<int>(70 + normalized * 175);
-                int green = static_cast<int>(170 + normalized * 80);
-                int blue = 255;
-                int penWidth = normalized < 0.35 ? 1 : (normalized < 0.75 ? 2 : 3);
+    for (const auto& arrow : arrows) {
+        wxPoint center = worldToScreen(arrow.x, arrow.y);
+        const double normalized = std::clamp(arrow.magnitude / maxMagnitude, 0.0, 1.0);
+        const int penWidth = normalized < 0.35 ? 1 : (normalized < 0.75 ? 2 : 3);
 
-                dc.SetPen(wxPen(wxColour(red, green, blue), penWidth));
-                dc.SetBrush(wxBrush(wxColour(red, green, blue)));
+        const int red = static_cast<int>(165 + normalized * 90.0);
+        const int green = static_cast<int>(220 + normalized * 35.0);
+        const int blue = 255;
+        const wxColour core(red, green, blue);
+        const wxColour glow(255, 255, 255);
 
-                double arrowLength = std::clamp(5.0 + normalized * 6.0, 5.0, 11.0);
-                double angle = std::atan2(vec.y, vec.x);
+        const double arrowLength = std::clamp(8.0 + normalized * 10.0, 8.0, 18.0);
+        const double angle = std::atan2(arrow.direction.y, arrow.direction.x);
 
-                wxPoint end(
-                    center.x + static_cast<int>(arrowLength * std::cos(angle)),
-                    center.y + static_cast<int>(arrowLength * std::sin(angle))
-                );
+        wxPoint end(
+            center.x + static_cast<int>(arrowLength * std::cos(angle)),
+            center.y + static_cast<int>(arrowLength * std::sin(angle))
+        );
 
-                dc.DrawLine(center.x, center.y, end.x, end.y);
+        dc.SetPen(wxPen(glow, penWidth + 2));
+        dc.DrawLine(center.x, center.y, end.x, end.y);
+        dc.SetPen(wxPen(core, penWidth));
+        dc.DrawLine(center.x, center.y, end.x, end.y);
 
-                // Dibujar punta de flecha
-                double arrowAngle = 0.5; // radians
-                int arrowSize = static_cast<int>(4 + normalized * 3);
-                wxPoint arrow1(
-                    end.x - static_cast<int>(arrowSize * std::cos(angle - arrowAngle)),
-                    end.y - static_cast<int>(arrowSize * std::sin(angle - arrowAngle))
-                );
-                wxPoint arrow2(
-                    end.x - static_cast<int>(arrowSize * std::cos(angle + arrowAngle)),
-                    end.y - static_cast<int>(arrowSize * std::sin(angle + arrowAngle))
-                );
-                
-                dc.DrawLine(end.x, end.y, arrow1.x, arrow1.y);
-                dc.DrawLine(end.x, end.y, arrow2.x, arrow2.y);
-            }
-        }
+        const double arrowAngle = 0.5;
+        const int arrowSize = static_cast<int>(6 + normalized * 4);
+        wxPoint arrow1(
+            end.x - static_cast<int>(arrowSize * std::cos(angle - arrowAngle)),
+            end.y - static_cast<int>(arrowSize * std::sin(angle - arrowAngle))
+        );
+        wxPoint arrow2(
+            end.x - static_cast<int>(arrowSize * std::cos(angle + arrowAngle)),
+            end.y - static_cast<int>(arrowSize * std::sin(angle + arrowAngle))
+        );
+
+        dc.SetPen(wxPen(glow, penWidth + 2));
+        dc.DrawLine(end.x, end.y, arrow1.x, arrow1.y);
+        dc.DrawLine(end.x, end.y, arrow2.x, arrow2.y);
+        dc.SetPen(wxPen(core, penWidth));
+        dc.DrawLine(end.x, end.y, arrow1.x, arrow1.y);
+        dc.DrawLine(end.x, end.y, arrow2.x, arrow2.y);
     }
 }
 
@@ -408,6 +469,9 @@ const tp::domain::Scenario* SimulationCanvas::getScenario() const {
 }
 
 void SimulationCanvas::OnLeftDown(wxMouseEvent& event) {
+    if (auto* mainWindow = wxDynamicCast(GetParent(), MainWindow)) {
+        mainWindow->beginEditorStroke();
+    }
     handleEditorMouseEvent(event, true);
 }
 
@@ -419,6 +483,9 @@ void SimulationCanvas::OnMotion(wxMouseEvent& event) {
 
 void SimulationCanvas::OnLeftUp(wxMouseEvent& event) {
     handleEditorMouseEvent(event, false);
+    if (auto* mainWindow = wxDynamicCast(GetParent(), MainWindow)) {
+        mainWindow->endEditorStroke();
+    }
 }
 
 void SimulationCanvas::handleEditorMouseEvent(wxMouseEvent& event, bool isDown) {
@@ -448,8 +515,11 @@ void SimulationCanvas::handleEditorMouseEvent(wxMouseEvent& event, bool isDown) 
     }
     
     // Notificar a MainWindow sobre la acción de edición
-    // MainWindow manejará la edición real a través de EditorPanel
-    // Esta es una implementación simplificada
+    if (isDown) {
+        if (auto* mainWindow = wxDynamicCast(GetParent(), MainWindow)) {
+            mainWindow->applyEditorToolAtCell(cellX, cellY);
+        }
+    }
 }
 
 void SimulationCanvas::updateCursor() {

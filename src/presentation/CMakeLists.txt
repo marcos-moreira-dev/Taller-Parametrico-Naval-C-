@@ -2,6 +2,7 @@ add_library(tp_presentation
     main_window/MainWindow.cpp
     widgets/SimulationCanvas.cpp
     widgets/SimpleGraph.cpp
+    widgets/FieldArrowSampler.cpp
     widgets/MathGraph.cpp
     widgets/TheoryGraphFactory.cpp
     widgets/MathHtmlPanel.cpp
@@ -14,6 +15,7 @@ add_library(tp_presentation
     widgets/Water3DCanvas.cpp
     panels/TheoryPanel.cpp
     panels/EditorPanel.cpp
+    panels/FieldEditorPanel.cpp
 )
 
 find_package(OpenGL REQUIRED)

@@ -15,16 +15,33 @@
  */
 
 #include "Scenario.hpp"
+#include "Boat.hpp"
+#include "Enums.hpp"
 #include <string>
 
 namespace tp::persistence {
 
-using namespace tp::domain;
+struct ScenarioFileData {
+    tp::domain::Scenario scenario;
+    tp::domain::Boat boat;
+    int fieldType = 0;
+    double fieldIntensity = 0.0;
+    double fieldCenterX = 25.0;
+    double fieldCenterY = 25.0;
+    std::string fieldFx = "0";
+    std::string fieldFy = "0";
+    double timeStep = 0.01;
+    double maxTime = 10.0;
+    int integrationMethod = 0;
+
+    ScenarioFileData()
+        : scenario(50, 50) {}
+};
 
 class ScenarioSaver {
 public:
-    static bool saveToFile(const Scenario& scenario, const std::string& filepath);
-    static std::string saveToJson(const Scenario& scenario);
+    static bool saveToFile(const ScenarioFileData& data, const std::string& filepath);
+    static std::string saveToJson(const ScenarioFileData& data);
 };
 
 }

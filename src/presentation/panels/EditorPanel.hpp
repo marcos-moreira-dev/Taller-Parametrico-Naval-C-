@@ -10,7 +10,6 @@
  * - Seleccionar herramientas de edición
  * - Configurar tamaño de brush y snap
  * - Crear/redimensionar escenarios
- * - Definir el campo vectorial
  * - Deshacer/rehacer acciones (undo/redo)
  * 
  * @note Usa CommandHistory para implementar undo/redo
@@ -50,11 +49,13 @@ enum class EditorTool {
 /**
  * @brief Panel de control del editor de escenarios
  * 
- * Organiza los controles en cuatro secciones:
+ * Organiza los controles en tres secciones:
  * 1. Herramientas: selección de herramienta de edición
  * 2. Brush: tamaño del pincel y snap a grille
  * 3. Escenario: crear/redimensionar escenario
- * 4. Campo: tipo y parámetros del campo vectorial
+ * 
+ * La edición del campo vectorial se realiza en FieldEditorPanel para mantener
+ * separadas las responsabilidades de mapa y campo.
  * 
  * Implementa undo/redo mediante CommandHistory.
  */
@@ -74,6 +75,7 @@ public:
      * @return EditorTool actual
      */
     EditorTool getCurrentTool() const { return currentTool_; }
+    void syncFromDocument();
     
     /**
      * @brief Selecciona una herramienta
@@ -94,6 +96,9 @@ public:
      * @return true si está activo
      */
     bool isSnapToGrid() const;
+    void applyToolAtCell(int x, int y);
+    void beginStroke();
+    void endStroke();
     
 private:
     /**
@@ -102,7 +107,6 @@ private:
      * Crea el layout principal con pestañas para:
      * - Herramientas
      * - Escenario
-     * - Campo
      */
     void setupUI();
     
@@ -127,13 +131,10 @@ private:
      */
     void createScenarioSection();
     
-    /**
-     * @brief Crea la sección de campo vectorial
-     * 
-     * Choice para tipo de campo y sliders para parámetros.
-     */
-    void createFieldSection();
-    
+    tp::application::ExperimentConfig* currentConfig() const;
+    void commitScenarioChange(const std::function<void(tp::application::ExperimentConfig&)>& mutation);
+    void applyFieldControlsToConfig();
+     
     // ============================================================
     // EVENT HANDLERS
     // ============================================================
@@ -172,6 +173,7 @@ private:
     wxSpinCtrl* widthCtrl_;
     wxSpinCtrl* heightCtrl_;
     wxTextCtrl* nameCtrl_;
+    wxStaticText* scenarioInfoText_;
     
     // Controles de campo
     wxChoice* fieldTypeChoice_;
@@ -186,6 +188,7 @@ private:
      * Permite deshacer y rehacer operaciones de edición.
      */
     CommandHistory commandHistory_;
+    std::unique_ptr<PaintStrokeCommand> activeStroke_;
     
     wxDECLARE_EVENT_TABLE();
 };

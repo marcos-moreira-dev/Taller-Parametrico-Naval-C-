@@ -27,8 +27,10 @@
 #include <wx/notebook.h>
 #include <wx/listbook.h>
 #include <wx/spinctrl.h>
+#include <wx/aui/framemanager.h>
 #include <vector>
 #include "ExperimentService.hpp"
+#include "ScenarioDocument.hpp"
 #include "widgets/SimulationCanvas.hpp"
 #include "widgets/Water3DCanvas.hpp"
 
@@ -42,12 +44,14 @@ class RightPanel;
 class BottomPanel;
 class TheoryPanel;
 class EditorPanel;
+class FieldEditorPanel;
 
 // Estados de la aplicación
 enum class AppMode {
     Theory,      // Modo teoría educativa
     Simulation,  // Modo simulación
-    Editor       // Modo editor de escenarios
+    Editor,      // Modo editor de escenarios
+    FieldEditor  // Modo editor de campos
 };
 
 class MainWindow : public wxFrame {
@@ -69,9 +73,14 @@ public:
     BottomPanel* getBottomPanel() const { return bottomPanel_; }
     SimulationCanvas* getCanvas() const { return canvas_; }
     Water3DCanvas* getCanvas3D() const { return canvas3D_; }
+    void openCustomFieldDialog();
+    void requestSimulationReset();
+    void requestSaveScenario();
+    void requestLoadScenario();
     
     // Acceso al servicio de experimentos
     tp::application::ExperimentService& getExperimentService() { return experimentService_; }
+    tp::application::ScenarioDocument& getScenarioDocument() { return scenarioDocument_; }
     
     // Setters para el escenario actual
     void setScenarioName(const wxString& name) { currentScenarioName_ = name; }
@@ -93,6 +102,9 @@ public:
     void updateEditorBrushSize(int size);
     void updateEditorSnap(bool snap);
     void setEditorMode(bool editor);
+    void beginEditorStroke();
+    void applyEditorToolAtCell(int x, int y);
+    void endEditorStroke();
     
 private:
     // Funciones auxiliares refactorizadas
@@ -102,6 +114,8 @@ private:
     void setupToolbar();
     void setupAuiLayout();
     void setupStatusBar();
+    void refreshStatusBar();
+    void syncViewMenuChecks();
     
     // Crear paneles
     wxPanel* createWelcomePanel();
@@ -127,6 +141,7 @@ private:
     void onModeTheory(wxCommandEvent& event);
     void onModeSimulation(wxCommandEvent& event);
     void onModeEditor(wxCommandEvent& event);
+    void onModeFieldEditor(wxCommandEvent& event);
     
     // Callback desde TheoryPanel para cargar escenario
     void onTheoryScenarioRequest(const wxString& scenarioName);
@@ -147,6 +162,7 @@ private:
     void onCaptureScreen(wxCommandEvent& event);
     void onCustomField(wxCommandEvent& event);
     void onToggle3D(wxCommandEvent& event);
+    void onAuiPaneClose(wxAuiManagerEvent& event);
     void OnClose(wxCloseEvent& event);
     
     // Actualizar UI
@@ -174,8 +190,10 @@ private:
     TheoryPanel* theoryPanel_;
     wxPanel* simulationPanel_;
     EditorPanel* editorPanel_;
+    FieldEditorPanel* fieldEditorPanel_;
     
     application::ExperimentService experimentService_;
+    application::ScenarioDocument scenarioDocument_;
     
     // Estado
     AppMode currentMode_;
@@ -193,6 +211,9 @@ private:
     double netDisplacement_;
     double routeEfficiency_;
     tp::shared::Vec2d initialPosition_;
+    tp::shared::Vec2d simulationStartPosition_;
+    tp::shared::Vec2d simulationStartVelocity_;
+    double simulationStartOrientation_;
     
     // Trayectoria acumulada
     std::vector<TrajectoryPoint> trajectoryPoints_;
@@ -200,6 +221,8 @@ private:
     // Estado del documento
     bool isModified_;
     wxString currentScenarioName_;
+    wxString currentScenarioPath_;
+    wxString simulationStatusText_;
     
     // IDs para paneles AUI
     static const int ID_LEFT_PANEL = 1000;
@@ -218,6 +241,7 @@ public:
     void updateScenarioList();
     int getSelectedScenarioIndex() const;
     void applyLayerVisibility();
+    void setFieldLayerVisible(bool visible);
     
 private:
     void createNavigationSection();
@@ -226,6 +250,7 @@ private:
     
     void onModeSelect(wxCommandEvent& event);
     void onScenarioSelect(wxCommandEvent& event);
+    void onLoadScenario(wxCommandEvent& event);
     void onLayerToggle(wxCommandEvent& event);
     
     MainWindow* mainWindow_;
@@ -277,6 +302,7 @@ private:
     void updateFieldFromUI();
     void updateNumericalFromUI();
     void syncFieldControlsFromConfig();
+    void updateFieldControlAvailability();
     void refreshScenePreview(bool syncProperties = false);
     
     MainWindow* mainWindow_;
@@ -303,6 +329,7 @@ private:
     wxStaticText* fieldIntensityValue_;
     wxSpinCtrl* fieldCenterXCtrl_;
     wxSpinCtrl* fieldCenterYCtrl_;
+    wxButton* customFieldEditBtn_;
     
     // Controles numéricos
     wxChoice* methodChoice_;

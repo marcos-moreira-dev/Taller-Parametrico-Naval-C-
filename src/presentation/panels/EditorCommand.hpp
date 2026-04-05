@@ -184,6 +184,14 @@ private:
 class CommandHistory {
 public:
     static constexpr size_t MAX_HISTORY = 50;
+
+    void pushExecutedCommand(std::unique_ptr<EditorCommand> command) {
+        while (!redoStack_.empty()) {
+            redoStack_.pop();
+        }
+        undoStack_.push(std::move(command));
+        trimHistory();
+    }
     
     void executeCommand(std::unique_ptr<EditorCommand> command) {
         command->execute();
@@ -192,24 +200,8 @@ public:
         while (!redoStack_.empty()) {
             redoStack_.pop();
         }
-        
-        // Add to undo stack
         undoStack_.push(std::move(command));
-        
-        // Limit history size
-        while (undoStack_.size() > MAX_HISTORY) {
-            // Remove oldest command (bottom of stack)
-            std::stack<std::unique_ptr<EditorCommand>> temp;
-            while (undoStack_.size() > 1) {
-                temp.push(std::move(undoStack_.top()));
-                undoStack_.pop();
-            }
-            undoStack_.pop(); // Remove oldest
-            while (!temp.empty()) {
-                undoStack_.push(std::move(temp.top()));
-                temp.pop();
-            }
-        }
+        trimHistory();
     }
     
     bool canUndo() const {
@@ -262,6 +254,21 @@ public:
     }
     
 private:
+    void trimHistory() {
+        while (undoStack_.size() > MAX_HISTORY) {
+            std::stack<std::unique_ptr<EditorCommand>> temp;
+            while (undoStack_.size() > 1) {
+                temp.push(std::move(undoStack_.top()));
+                undoStack_.pop();
+            }
+            undoStack_.pop();
+            while (!temp.empty()) {
+                undoStack_.push(std::move(temp.top()));
+                temp.pop();
+            }
+        }
+    }
+
     std::stack<std::unique_ptr<EditorCommand>> undoStack_;
     std::stack<std::unique_ptr<EditorCommand>> redoStack_;
 };

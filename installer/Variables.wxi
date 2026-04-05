@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Variables.wxi
+  Variables configurables del instalador
+  
+  NOTA: Cambiar los GUIDs para cada release mayor!
+  Generar nuevos GUIDs en: https://www.guidgen.com/
+-->
+<Include>
+  
+  <!-- Información del producto -->
+  <?define ProductName = "Taller Paramétrico de Navegación" ?>
+  <?define ProductShortName = "TallerParametrico" ?>
+  <?define ProductVersion = "1.0.0" ?>
+  <?define ProductLanguage = "3082" ?>  <!-- Español -->
+  <?define Manufacturer = "Proyecto Educativo Taller Paramétrico" ?>
+  <?define Comments = "Aplicación educativa de física de fluidos y campos vectoriales" ?>
+  
+  <!-- GUIDs del producto - ¡CAMBIAR PARA CADA RELEASE MAYOR! -->
+  <?define ProductCode = "{12345678-1234-1234-1234-123456789012}" ?>
+  <?define UpgradeCode = "{87654321-4321-4321-4321-210987654321}" ?>
+  
+  <!-- Rutas -->
+  <?define SourceDir = ".." ?>
+  <?define InstallerDir = "..\installer" ?>
+  
+  <!-- Enlaces -->
+  <?define HelpLink = "https://github.com/taller-parametrico/help" ?>
+  <?define AboutLink = "https://github.com/taller-parametrico" ?>
+  <?define UpdateLink = "https://github.com/taller-parametrico/releases" ?>
+  
+</Include>

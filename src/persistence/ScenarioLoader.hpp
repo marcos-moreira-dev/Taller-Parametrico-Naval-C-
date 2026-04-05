@@ -14,18 +14,16 @@
  * @see Scenario para formato interno
  */
 
-#include "Scenario.hpp"
+#include "ScenarioSaver.hpp"
 #include <string>
 #include <optional>
 
 namespace tp::persistence {
 
-using namespace tp::domain;
-
 class ScenarioLoader {
 public:
-    static std::optional<Scenario> loadFromFile(const std::string& filepath);
-    static std::optional<Scenario> loadFromJson(const std::string& json);
+    static std::optional<ScenarioFileData> loadFromFile(const std::string& filepath);
+    static std::optional<ScenarioFileData> loadFromJson(const std::string& json);
 };
 
 }

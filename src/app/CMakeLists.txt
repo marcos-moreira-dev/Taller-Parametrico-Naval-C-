@@ -62,5 +62,9 @@ if(BUILD_GUI)
                     "${wxWidgets_LIBRARY_DIRS}/WebView2Loader.dll"
                     "$<TARGET_FILE_DIR:TallerParametrico>/WebView2Loader.dll"
         )
+
+        install(FILES "${wxWidgets_LIBRARY_DIRS}/WebView2Loader.dll"
+            DESTINATION bin
+        )
     endif()
 endif()

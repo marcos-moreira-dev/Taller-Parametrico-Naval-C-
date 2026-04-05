@@ -1,277 +1,235 @@
 # Taller Paramétrico de Navegación y Campos 2D
 
-**Versión**: 0.2.0  
-**Autor**: Proyecto de C++  
-**Licencia**: Proyecto Educativo
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
+[![C++](https://img.shields.io/badge/C++-20-orange)]()
+[![License](https://img.shields.io/badge/license-Educational-lightgrey)]()
+
+**Aplicación educativa de escritorio para explorar física de fluidos, campos vectoriales y métodos numéricos.**
 
 ---
 
 ## 📖 DESCRIPCIÓN
 
-Aplicación de escritorio en C++ para la exploración didáctica de campos vectoriales, trayectorias y métodos numéricos en escenarios 2D editables.
+Simulador interactivo que combina física computacional, visualización gráfica y contenido educativo para el aprendizaje de:
 
-Combina:
-
-- **Simulación física** con hidrodinámica realista
-- **Visualización interactiva** con efectos de agua
-- **Contenido educativo** integrado
-- **Experimentación** paramétrica
+- **Campos vectoriales** y su dinámica
+- **Ecuaciones diferenciales ordinarias (EDOs)**
+- **Métodos numéricos** (Euler, Heun, RK4)
+- **Física de fluidos** aplicada a navegación
 
 ---
 
-## 🎯 CARACTERÍSTICAS PRINCIPALES
+## ✨ CARACTERÍSTICAS
 
 ### 🌊 Simulación Física
-
-- **Hidrodinámica avanzada**: Arrastre viscoso/cuadrático, sustentación, Coriolis
-- **3 métodos numéricos**: Euler, Euler Mejorado, RK4
-- **Física en tiempo real**: Cambio de parámetros durante simulación
-- **6 escenarios predefinidos**: Ríos, remolinos, canales, laberintos
+- **Hidrodinámica realista**: Arrastre viscoso/cuadrático, sustentación
+- **3 métodos numéricos**: Euler, Euler Mejorado, RK4 con comparación visual
+- **10 escenarios predefinidos**: Ríos, remolinos, efecto Venturi, canales
+- **Auto-thrust**: Navegación automática optimizada
 
 ### 🎨 Visualización
-
-- **Campo vectorial dinámico**: Flechas coloridas con dirección/intensidad
-- **Sistema de partículas**: Agua, espuma y estela del bote
-- **Gráficas en tiempo real**: Velocidad, energía, posición
-- **Trayectoria animada**: Rastro del movimiento con colores
+- **Campo vectorial dinámico** con flechas coloridas
+- **Sistema de partículas**: Agua, espuma, estela y salpicaduras
+- **Gráficas en tiempo real** estilo matplotlib
+- **Renderizado de ecuaciones** LaTeX
 
 ### 📚 Contenido Educativo
-
-- **14 conceptos teóricos**: Campos, EDOs, métodos numéricos, física
-- **Navegación por categorías**: Cálculo, Física, Métodos Numéricos
-- **Fórmulas interactivas**: Renderizado con ejemplos
-- **Conexión simulación-teoría**: Botón "Ver en simulación"
+- **14 conceptos teóricos** organizados por categorías
+- **Fórmulas interactivas** con explicaciones paso a paso
+- **Conexión teoría-práctica**: Botón "Ver en simulación"
 
 ### 🛠️ Herramientas
-
-- **Editor de escenarios**: Pintar agua/tierra/obstáculos
-- **Campo personalizado**: Definir funciones matemáticas
-- **Exportación**: Imágenes PNG/JPG y datos CSV
-- **Gestión de archivos**: Guardar/cargar escenarios
+- **Editor de escenarios**: Pintar terreno, obstáculos, campo personalizado
+- **Undo/Redo**: Historial de 50 comandos
+- **Exportación**: PNG, CSV con trayectorias completas
 
 ---
 
-## 🚀 INSTALACIÓN
+## 🚀 INICIO RÁPIDO
 
-### Requisitos
+### Windows (MSYS2/MinGW)
 
-- Windows 7/10/11 (64-bit)
-- Visual C++ Redistributable 2015-2022
-- MinGW-w64 (opcional, para compilación)
+```bash
+# Clonar repositorio
+git clone <repo-url>
+cd cplus
 
-### Instalación Rápida
+# Compilar (automático)
+build.bat
 
-1. Descargar `TallerParametrico.zip`
-2. Extraer en carpeta deseada
-3. Ejecutar `TallerParametrico.exe`
+# O manualmente:
+cd build
+cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target TallerParametrico
 
-**Nota**: Si aparece error de DLLs faltantes, instalar:
-[Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+# Ejecutar
+.\bin\TallerParametrico.exe
+```
+
+### Linux/macOS
+
+```bash
+# Compilar
+./scripts/build.sh
+
+# Ejecutar
+./build/bin/TallerParametrico
+```
 
 ---
 
-## 🎮 USO RÁPIDO
-
-### Controles Básicos
-
-```
-Espacio        - Iniciar/Pausar simulación
-R              - Reiniciar simulación
-F1/F2/F3       - Cambiar modo (Teoría/Simulación/Editor)
-Ctrl+N/O/S     - Nuevo/Abrir/Guardar
-Ctrl+E         - Exportar imagen
-```
-
-### Primeros Pasos
-
-1. **Iniciar**: Presionar `Espacio` para comenzar simulación
-2. **Ajustar parámetros**: Mover sliders en panel derecho
-3. **Cambiar escenario**: Seleccionar de lista en panel izquierdo
-4. **Ver teoría**: Presionar F1 y explorar conceptos
-
-### Ejemplo: Comparar Métodos Numéricos
-
-1. Seleccionar escenario "Remolino central"
-2. Iniciar simulación con Euler
-3. Cambiar a RK4 sin pausar
-4. Observar diferencias en trayectoria
-
----
-
-## 📐 FUNDAMENTOS MATEMÁTICOS
-
-### Modelo del Bote
-
-**Ecuaciones de movimiento**:
-
-```
-m·dv/dt = F_motor + F_arrastre + F_campo
-I·dω/dt = τ_alineación + τ_amortiguamiento
-```
-
-**Fuerzas hidrodinámicas**:
-
-- **Arrastre viscoso**: F = -b·v (Re < 1000)
-- **Arrastre cuadrático**: F = -½·ρ·Cd·A·v² (Re > 100000)
-- **Sustentación**: Función del número de Froude
-- **Coriolis**: F = 2m·ω×v
-
-### Métodos Numéricos
-
-| Método         | Error | Uso Recomendado             |
-| -------------- | ----- | --------------------------- |
-| Euler          | O(h²) | Exploración rápida          |
-| Euler Mejorado | O(h³) | Balance precisión/velocidad |
-| RK4            | O(h⁵) | Precisión máxima            |
-
----
-
-## 🏗️ ARQUITECTURA
-
-### Capas del Sistema
-
-```
-┌─────────────────────────────────────────┐
-│  Presentation (wxWidgets GUI)           │
-│  - MainWindow, Paneles, Canvas          │
-├─────────────────────────────────────────┤
-│  Application (ExperimentService)        │
-│  - Estado, Configuración, Persistencia  │
-├─────────────────────────────────────────┤
-│  Simulation (Integradores)              │
-│  - Euler, RK4, Física                   │
-├─────────────────────────────────────────┤
-│  Domain (Entidades)                     │
-│  - Boat, VectorField, Scenario          │
-├─────────────────────────────────────────┤
-│  Shared (Utilidades)                    │
-│  - Vec2, Logger, Enums                  │
-└─────────────────────────────────────────┘
-```
-
-### Tecnologías
-
-- **C++20**: Lenguaje principal
-- **wxWidgets 3.3.2**: Framework GUI
-- **CMake**: Sistema de build
-- **STL**: Contenedores y algoritmos
-
----
-
-## 📁 ESTRUCTURA DE ARCHIVOS
+## 📁 ESTRUCTURA DEL PROYECTO
 
 ```
 cplus/
-├── src/
-│   ├── app/                    # Punto de entrada
-│   │   ├── main.cpp           # GUI
-│   │   └── console_main.cpp   # Versión consola
-│   ├── presentation/          # UI
-│   │   ├── main_window/       # Ventana principal
-│   │   ├── panels/           # Paneles (Left, Right, Bottom)
-│   │   └── widgets/          # Canvas, Gráficas, Partículas
-│   ├── application/           # Lógica de app
-│   │   └── ExperimentService
-│   ├── simulation/            # Física
-│   │   ├── integrators/      # Euler, RK4
-│   │   └── runner/           # Control simulación
-│   ├── domain/               # Entidades
-│   │   ├── Boat.hpp         # Modelo hidrodinámico
-│   │   ├── VectorField.hpp  # Campo vectorial
-│   │   └── Scenario.hpp     # Mapa 2D
-│   └── shared/               # Utilidades
-│       ├── Vec2.hpp         # Vector 2D
-│       └── Logger.hpp       # Logging
-├── docs/                     # Documentación
-│   ├── ARCHITECTURE_CONSOLIDATED.md
-│   └── product_spec_proyecto_cpp_taller_parametrico.md
-├── build/                    # Archivos de compilación
-│   ├── bin/                 # Ejecutables
-│   │   ├── TallerParametrico.exe
-│   │   ├── libgcc_s_seh-1.dll
-│   │   ├── libstdc++-6.dll
-│   │   └── libwinpthread-1.dll
-│   └── wx_installed/        # Librerías wxWidgets
-└── CMakeLists.txt           # Configuración CMake
+├── src/                          # Código fuente
+│   ├── app/                      # Punto de entrada
+│   ├── presentation/             # UI (wxWidgets)
+│   ├── application/              # Lógica de negocio
+│   ├── simulation/               # Física y métodos numéricos
+│   ├── domain/                   # Entidades del dominio
+│   └── shared/                   # Utilidades comunes
+├── tests/                        # Tests unitarios e integración
+├── docs/                         # Documentación
+├── assets/                       # Recursos (escenarios, teoría)
+├── scripts/                      # Scripts de build/utilidades
+├── build/                        # Build directory (gitignored)
+├── CMakeLists.txt               # Configuración CMake principal
+└── README.md                    # Este archivo
 ```
 
 ---
 
-## 🔧 COMPILACIÓN
-
-### Desde MSYS2/MinGW
+## 🧪 TESTING
 
 ```bash
-cd cplus/build
-cmake .. -G Ninja
-cmake --build . --target TallerParametrico
+# Ejecutar todos los tests
+build.bat test                   # Windows
+./scripts/run_all_tests.sh       # Linux/macOS
+
+# O con CTest
+cd build
+ctest --output-on-failure
 ```
 
-### Desde Visual Studio
+**Cobertura actual**: 44 tests pasando ✅
 
+---
+
+## 🛠️ DEPENDENCIAS
+
+- **C++20** compatible compiler
+- **CMake** 3.16+
+- **wxWidgets** 3.3.2+
+- **Ninja** o Make
+
+### Instalación de dependencias
+
+**Windows (MSYS2)**:
 ```bash
-cd cplus/build
-"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" .. -G Ninja
-cmake --build . --target TallerParametrico
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
+```
+
+**Ubuntu/Debian**:
+```bash
+sudo apt-get install build-essential cmake ninja-build libwxgtk3.2-dev
+```
+
+**macOS**:
+```bash
+brew install cmake ninja wxwidgets
 ```
 
 ---
 
-## 📊 RENDIMIENTO
+## 📦 RELEASE
 
-- **FPS Objetivo**: 30 (configurable)
-- **Partículas máximas**: 800
-- **Resolución escenario**: Hasta 200x200 celdas
-- **Memoria**: ~50MB en ejecución
+Para crear un instalador MSI:
+
+```bash
+# Windows
+build.bat release
+
+# MSI (requiere WiX Toolset y variable WIX configurada)
+build.bat msi
+```
+
+---
+
+## 📚 DOCUMENTACIÓN
+
+- [Arquitectura del sistema](docs/ARCHITECTURE_CONSOLIDATED.md)
+- [Guía de wxWidgets](docs/WXWIDGETS_GUIA.md)
+- [Especificación del producto](docs/product_spec_proyecto_cpp_taller_parametrico.md)
+- [Guía de deploy](docs/DEPLOY.md)
+- [Quick Start](docs/QUICKSTART.md)
 
 ---
 
 ## 🐛 SOLUCIÓN DE PROBLEMAS
 
-### Error: "No se encuentran DLLs"
+### Error: "No se encuentra wxWidgets"
 
-**Solución**: Instalar Visual C++ Redistributable o copiar DLLs de MinGW a carpeta bin/
+En Windows, `build.bat` intenta reutilizar `build/wx_installed/` o recompilar wxWidgets con `build.bat wx`.
+En Linux/macOS, usa la instalación del sistema.
 
-### Error: "Ventana sin botones cerrar/minimizar"
+Si falla:
 
-**Solución**: Es un bug conocido de wxWidgets+AUI. Usar Alt+F4 para cerrar.
+```bash
+# Windows: Asegurar que MSYS2 está en PATH
+set PATH=C:\msys64\mingw64\bin;%PATH%
 
-### Simulación muy lenta
+# Linux/macOS: Instalar wxWidgets
+sudo apt-get install libwxgtk3.2-dev  # Ubuntu
+brew install wxwidgets                 # macOS
+```
 
-**Solución**: Reducir paso temporal o cambiar a método Euler
+### Error: "DLLs faltantes"
 
----
+Copiar DLLs de MinGW al directorio del ejecutable:
 
-## 📝 LICENCIA Y ATRIBUTOS
-
-Proyecto educativo desarrollado como taller de C++.
-
-### Bibliotecas de Terceros
-
-- wxWidgets (LGPL)
-- STL (Standard C++ Library)
-
----
-
-## 🤝 CONTRIBUCIONES
-
-Áreas para extensión:
-
-1. Nuevos tipos de campos vectoriales
-2. Más escenarios predefinidos
-3. Soporte para 3D
-4. Multiplayer colaborativo
-5. Integración con OpenGL
+```bash
+cd build/bin
+cp /mingw64/bin/libgcc_s_seh-1.dll .
+cp /mingw64/bin/libstdc++-6.dll .
+cp /mingw64/bin/libwinpthread-1.dll .
+```
 
 ---
 
-## 📞 SOPORTE
+## 🤝 CONTRIBUIR
 
-Para reportar bugs o sugerencias:
-
-- GitHub Issues: https://github.com/anomalyco/opencode/issues
+1. Fork el repositorio
+2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -am 'Añadir nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abrir Pull Request
 
 ---
 
-**Última actualización**: Marzo 2025  
-**Versión documentación**: 1.0
+## 📝 LICENCIA
+
+Proyecto educativo. Uso permitido para fines educativos y de investigación.
+
+**Bibliotecas de terceros**:
+- wxWidgets: LGPL
+- C++ Standard Library: Estándar ISO
+
+---
+
+## 👥 AUTORES
+
+Proyecto desarrollado como Taller de C++ Avanzado.
+
+---
+
+## 🙏 AGRADECIMIENTOS
+
+- Comunidad wxWidgets
+- Proyecto CMake
+- Contribuidores de código abierto
+
+---
+
+<p align="center">⭐ Star este repo si te fue útil!</p>

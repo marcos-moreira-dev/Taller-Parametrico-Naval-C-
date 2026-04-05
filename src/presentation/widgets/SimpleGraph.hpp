@@ -41,6 +41,7 @@ public:
     void setColor(const wxColour& color);
     
 private:
+    static constexpr size_t MAX_POINTS = 600;
     void onPaint(wxPaintEvent& event);
     void drawGraph(wxDC& dc);
     

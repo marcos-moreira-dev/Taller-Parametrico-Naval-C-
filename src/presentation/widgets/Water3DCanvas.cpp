@@ -1,4 +1,5 @@
 #include "Water3DCanvas.hpp"
+#include "FieldArrowSampler.hpp"
 #include <wx/timer.h>
 #include <vector>
 #include <iostream>
@@ -638,7 +639,6 @@ void Water3DCanvas::render() {
     float maxVisibleZ = domainHeight;
     
     if (showField_ && vectorField_) {
-        const int arrowStep = 3;
         const float arrowBody = 1.6f;
         const float arrowHead = 0.72f;
 
@@ -646,58 +646,44 @@ void Water3DCanvas::render() {
         glDisable(GL_DEPTH_TEST);
         glLineWidth(1.6f);
 
-        for (int cellY = 1; cellY < static_cast<int>(domainHeight); cellY += arrowStep) {
-            for (int cellX = 1; cellX < static_cast<int>(domainWidth); cellX += arrowStep) {
-                if (scenario_ && scenario_->getCell(cellX, cellY) != tp::shared::CellType::Water) {
-                    continue;
-                }
+        const auto arrows = FieldArrowSampler::sample(scenario_, vectorField_, 3, 0.05, 0.5);
+        for (const auto& arrow : arrows) {
+            const float animX = static_cast<float>(arrow.x);
+            const float animZ = static_cast<float>(arrow.y);
+            const float dirX = static_cast<float>(arrow.direction.x);
+            const float dirZ = static_cast<float>(arrow.direction.y);
+            const float magnitude = static_cast<float>(arrow.magnitude);
+            const float py = calculateWaterHeight(animX, animZ, oceanAnimationTime_) + 0.28f;
+            const float normalized = std::clamp(magnitude / 10.0f, 0.0f, 1.0f);
+            const float scale = std::clamp(0.65f + normalized * 0.55f, 0.65f, 1.2f);
+            const float body = arrowBody * scale;
+            const float head = arrowHead * scale;
+            const float tailX = animX - dirX * body * 0.5f;
+            const float tailZ = animZ - dirZ * body * 0.5f;
+            const float tipX = animX + dirX * body * 0.5f;
+            const float tipZ = animZ + dirZ * body * 0.5f;
+            const float sideX = -dirZ;
+            const float sideZ = dirX;
 
-                const float gx = static_cast<float>(cellX) + 0.5f;
-                const float gz = static_cast<float>(cellY) + 0.5f;
-                Vec2d field = vectorField_->getValue(gx, gz);
-                const float magnitude = static_cast<float>(field.magnitude());
-                if (magnitude < 0.05f) {
-                    continue;
-                }
+            const float bodyRed = 0.24f + normalized * 0.66f;
+            const float bodyGreen = 0.70f + normalized * 0.26f;
+            const float bodyBlue = 1.0f;
+            const float headRed = 0.40f + normalized * 0.58f;
+            const float headGreen = 0.80f + normalized * 0.18f;
+            const float headBlue = 1.0f;
 
-                const float invMag = 1.0f / magnitude;
-                const float dirX = static_cast<float>(field.x) * invMag;
-                const float dirZ = static_cast<float>(field.y) * invMag;
-                const float animX = gx;
-                const float animZ = gz;
+            glColor3f(bodyRed, bodyGreen, bodyBlue);
+            glBegin(GL_LINES);
+            glVertex3f(tailX, py, tailZ);
+            glVertex3f(tipX, py, tipZ);
+            glEnd();
 
-                const float py = calculateWaterHeight(animX, animZ, oceanAnimationTime_) + 0.28f;
-                const float normalized = std::clamp(magnitude / 10.0f, 0.0f, 1.0f);
-                const float scale = std::clamp(0.65f + normalized * 0.55f, 0.65f, 1.2f);
-                const float body = arrowBody * scale;
-                const float head = arrowHead * scale;
-                const float tailX = animX - dirX * body * 0.5f;
-                const float tailZ = animZ - dirZ * body * 0.5f;
-                const float tipX = animX + dirX * body * 0.5f;
-                const float tipZ = animZ + dirZ * body * 0.5f;
-                const float sideX = -dirZ;
-                const float sideZ = dirX;
-
-                const float bodyRed = 0.24f + normalized * 0.66f;
-                const float bodyGreen = 0.70f + normalized * 0.26f;
-                const float bodyBlue = 1.0f;
-                const float headRed = 0.40f + normalized * 0.58f;
-                const float headGreen = 0.80f + normalized * 0.18f;
-                const float headBlue = 1.0f;
-
-                glColor3f(bodyRed, bodyGreen, bodyBlue);
-                glBegin(GL_LINES);
-                glVertex3f(tailX, py, tailZ);
-                glVertex3f(tipX, py, tipZ);
-                glEnd();
-
-                glColor3f(headRed, headGreen, headBlue);
-                glBegin(GL_TRIANGLES);
-                glVertex3f(tipX, py, tipZ);
-                glVertex3f(tipX - dirX * head + sideX * head * 0.58f, py, tipZ - dirZ * head + sideZ * head * 0.58f);
-                glVertex3f(tipX - dirX * head - sideX * head * 0.58f, py, tipZ - dirZ * head - sideZ * head * 0.58f);
-                glEnd();
-            }
+            glColor3f(headRed, headGreen, headBlue);
+            glBegin(GL_TRIANGLES);
+            glVertex3f(tipX, py, tipZ);
+            glVertex3f(tipX - dirX * head + sideX * head * 0.58f, py, tipZ - dirZ * head + sideZ * head * 0.58f);
+            glVertex3f(tipX - dirX * head - sideX * head * 0.58f, py, tipZ - dirZ * head - sideZ * head * 0.58f);
+            glEnd();
         }
 
         glLineWidth(1.0f);

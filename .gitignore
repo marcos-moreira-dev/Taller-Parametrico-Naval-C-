@@ -1,58 +1,211 @@
-# Binarios y builds
-/build/
-/build2/
-/build3/
-/build4/
-/build5/
-/build_quality/
-/build_complete/
-/out/
-/manual_build/
-*.exe
-*.dll
-*.so
-*.a
-*.lib
-*.obj
-*.o
-*.pdb
-*.ilk
-*.exp
+# ============================================================================
+# GITIGNORE PROFESIONAL - Taller Paramétrico
+# ============================================================================
+# https://git-scm.com/docs/gitignore
+# 
+# Este archivo define qué archivos/directorios NO deben versionarse en Git.
+# 
+# REGLAS GENERALES:
+# - No versionar archivos generados automáticamente (build, cache, etc.)
+# - No versionar dependencias externas grandes (se instalan en build)
+# - No versionar configuraciones locales específicas de máquina
+# - No versionar archivos temporales o de debug
+# 
+# COMANDOS ÚTILES:
+#   git rm -r --cached <archivo>    # Eliminar del repo sin borrar local
+#   git clean -fdX                  # Limpiar archivos ignorados
+# ============================================================================
 
-# CMake
+# ============================================================================
+# DIRECTORIOS DE BUILD (todos los directorios de compilación)
+# ============================================================================
+/build/
+/build[0-9]*/
+/build_*/
+/out/
+/output/
+/dist/
+/bin/
+/lib/
+/libs/
+/manual_build/
+build_quality/
+build_complete/
+
+# ============================================================================
+# CMAKE - Archivos generados
+# ============================================================================
 CMakeCache.txt
 CMakeFiles/
+CMakeScripts/
 cmake_install.cmake
-Makefile
+install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 Testing/
+Makefile
+CMakeUserPresets.json
 
-# IDEs
-.vs/
-.vscode/
-.idea/
-*.sln
-*.vcxproj
-*.vcxproj.filters
-*.vcxproj.user
+# ============================================================================
+# NINJA - Archivos de build
+# ============================================================================
+*.ninja
+.ninja_deps
+.ninja_log
+build.ninja
+
+# ============================================================================
+# ARCHIVOS DE COMPILACIÓN C++
+# ============================================================================
+# Objetos
+*.o
+*.obj
+
+# Librerías estáticas
+*.a
+*.lib
+
+# Librerías dinámicas
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Ejecutables
+*.exe
+*.out
+*.app
+
+# Debug symbols
+*.pdb
+*.ilk
+*.exp
+*.manifest
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Dependencias
+*.d
+
+# ============================================================================
+# DEPENDENCIAS EXTERNAS (se descargan durante el build)
+# ============================================================================
+# wxWidgets (se compila durante setup)
+/wxwidgets/
+/wx_installed/
+/external/wxwidgets/
 
 # vcpkg
 vcpkg_installed/
 
-# Assets generados
-/assets/temp/
-
-# Logs
+# ============================================================================
+# ARCHIVOS TEMPORALES Y DE CACHE
+# ============================================================================
+.cache/
+*.tmp
+*.temp
 *.log
 /logs/
+*.cache
+*.pid
+*.seed
+*.pid.lock
 
-# Toolchains locales
-/wxwidgets/
-/wx_installed/
-/lib/
-/libs/
+# ============================================================================
+# ARCHIVOS DE IDE Y EDITORES
+# ============================================================================
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sdf
+*.opensdf
+ipch/
 
-# Configuracion local
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# CLion / IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+
+# ============================================================================
+# CONFIGURACIONES LOCALES (específicas de cada máquina)
+# ============================================================================
+config.local.ini
 config.ini
 .env
+.env.local
+.env.*.local
+
+# ============================================================================
+# SISTEMAS OPERATIVOS
+# ============================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.nfs*
+.directory
+
+# ============================================================================
+# ARCHIVOS DE BACKUP Y VIEJOS
+# ============================================================================
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# ARCHIVOS DE TEST RESIDUALES
+# ============================================================================
+test.obj
+test.o
+test.exe
+test
+
+# ============================================================================
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO
+# ============================================================================
+# Archivos de más que no deben versionarse:
+# - scripts temporales de build
+# - archivos de migración
+
+# ============================================================================
+# EXCEPCIONES (descomentar si es necesario)
+# ============================================================================
+# Si necesitas forzar la inclusión de algún archivo ignorado:
+# !docs/manual.pdf
+# !assets/icon.ico

@@ -1,8 +1,12 @@
 #include "ExperimentService.hpp"
+#include "PresetFileRepository.hpp"
 #include "ScenarioLoader.hpp"
 #include "ScenarioSaver.hpp"
 #include "integrators/Integrators.hpp"
 #include "Logger.hpp"
+#include "MathExpression.hpp"
+
+#include <filesystem>
 
 namespace tp::application {
 
@@ -11,8 +15,9 @@ using namespace tp::shared;
 ExperimentService::ExperimentService()
     : runner_(nullptr) {
     config_.scenario = Scenario(50, 50);
+    config_.scenario.setName("Nuevo Escenario");
     config_.field = VectorField::uniform(0.0, 0.0);
-    config_.fieldView = {FieldPresetType::Uniform, 0.0, 25.0, 25.0};
+    config_.fieldView = FieldConfigView{FieldPresetType::Uniform, 0.0, 25.0, 25.0, "0", "0"};
     config_.boat = Boat();
     config_.motor = Motor::constant(0.0, 0.0);
     config_.timeStep = 0.01;
@@ -26,8 +31,9 @@ void ExperimentService::createNewExperiment() {
     LOG_INFO_MACRO("Creando nuevo experimento...");
     
     config_.scenario = Scenario(50, 50);
+    config_.scenario.setName("Nuevo Escenario");
     config_.field = VectorField::uniform(0.0, 0.0);
-    config_.fieldView = {FieldPresetType::Uniform, 0.0, 25.0, 25.0};
+    config_.fieldView = FieldConfigView{FieldPresetType::Uniform, 0.0, 25.0, 25.0, "0", "0"};
     config_.boat = Boat();
     config_.motor = Motor::constant(0.0, 0.0);
     
@@ -42,9 +48,21 @@ void ExperimentService::createNewExperiment() {
 void ExperimentService::loadExperiment(const std::string& filepath) {
     LOG_INFO_MACRO("Cargando experimento desde: " + filepath);
     
-    auto scenario = persistence::ScenarioLoader::loadFromFile(filepath);
-    if (scenario) {
-        config_.scenario = *scenario;
+    auto loaded = persistence::ScenarioLoader::loadFromFile(filepath);
+    if (loaded) {
+        config_.scenario = loaded->scenario;
+        config_.boat = loaded->boat;
+        config_.fieldView.type = static_cast<FieldPresetType>(loaded->fieldType);
+        config_.fieldView.intensity = loaded->fieldIntensity;
+        config_.fieldView.centerX = loaded->fieldCenterX;
+        config_.fieldView.centerY = loaded->fieldCenterY;
+        config_.fieldView.customFx = loaded->fieldFx;
+        config_.fieldView.customFy = loaded->fieldFy;
+        config_.timeStep = loaded->timeStep;
+        config_.maxTime = loaded->maxTime;
+        config_.method = static_cast<IntegrationMethod>(loaded->integrationMethod);
+        rebuildFieldFromView();
+        notifyConfigChange();
         LOG_INFO_MACRO("Experimento cargado exitosamente");
     } else {
         LOG_ERROR_MACRO("No se pudo cargar el experimento desde: " + filepath);
@@ -53,8 +71,21 @@ void ExperimentService::loadExperiment(const std::string& filepath) {
 
 void ExperimentService::saveExperiment(const std::string& filepath) {
     LOG_INFO_MACRO("Guardando experimento en: " + filepath);
-    
-    if (persistence::ScenarioSaver::saveToFile(config_.scenario, filepath)) {
+
+    persistence::ScenarioFileData data;
+    data.scenario = config_.scenario;
+    data.boat = config_.boat;
+    data.fieldType = static_cast<int>(config_.fieldView.type);
+    data.fieldIntensity = config_.fieldView.intensity;
+    data.fieldCenterX = config_.fieldView.centerX;
+    data.fieldCenterY = config_.fieldView.centerY;
+    data.fieldFx = config_.fieldView.customFx;
+    data.fieldFy = config_.fieldView.customFy;
+    data.timeStep = config_.timeStep;
+    data.maxTime = config_.maxTime;
+    data.integrationMethod = static_cast<int>(config_.method);
+
+    if (persistence::ScenarioSaver::saveToFile(data, filepath)) {
         LOG_INFO_MACRO("Experimento guardado exitosamente");
     } else {
         LOG_ERROR_MACRO("No se pudo guardar el experimento en: " + filepath);
@@ -73,6 +104,51 @@ void ExperimentService::setField(const VectorField& field) {
     config_.field = field;
     LOG_DEBUG_MACRO("Campo vectorial configurado");
     notifyConfigChange();
+}
+
+void ExperimentService::setFieldView(const FieldConfigView& fieldView) {
+    config_.fieldView = fieldView;
+    rebuildFieldFromView();
+}
+
+bool ExperimentService::rebuildFieldFromView(std::string* errorMessage) {
+    try {
+        const auto& fv = config_.fieldView;
+        switch (fv.type) {
+            case FieldPresetType::Uniform:
+                config_.field = VectorField::uniform(fv.intensity, 0.0);
+                break;
+            case FieldPresetType::Linear:
+                config_.field = VectorField::linear(fv.intensity / 25.0, 0.0, 0.0, fv.intensity / 25.0);
+                break;
+            case FieldPresetType::Radial:
+                config_.field = VectorField::radial(fv.centerX, fv.centerY, fv.intensity);
+                break;
+            case FieldPresetType::Rotational:
+                config_.field = VectorField::rotational(fv.centerX, fv.centerY, fv.intensity);
+                break;
+            case FieldPresetType::Custom: {
+                MathExpression parser;
+                if (!parser.parse(fv.customFx, fv.customFy)) {
+                    if (errorMessage) {
+                        *errorMessage = "No se pudo parsear el campo personalizado";
+                    }
+                    return false;
+                }
+                config_.field = VectorField([parser](double x, double y) {
+                    return parser.evaluate(x, y);
+                });
+                break;
+            }
+        }
+        notifyConfigChange();
+        return true;
+    } catch (const std::exception& ex) {
+        if (errorMessage) {
+            *errorMessage = ex.what();
+        }
+        return false;
+    }
 }
 
 void ExperimentService::setBoat(const Boat& boat) {
@@ -128,11 +204,24 @@ simulation::SimulationResult ExperimentService::runSimulation() {
 }
 
 void ExperimentService::initPresets() {
+    try {
+#ifdef TP_SOURCE_DIR
+        PresetFileRepository repository(std::filesystem::path(TP_SOURCE_DIR) / "assets" / "presets");
+        presets_ = repository.loadPresets();
+        if (!presets_.empty()) {
+            LOG_INFO_MACRO("Presets cargados desde archivos: " + std::to_string(presets_.size()));
+            return;
+        }
+#endif
+    } catch (const std::exception& ex) {
+        LOG_WARNING(std::string("No se pudieron cargar presets externos, usando presets embebidos: ") + ex.what());
+    }
+
     presets_.push_back({
         "1. Río con corriente uniforme",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(2.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 2.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 2.0, 25.0, 25.0, "2.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -148,7 +237,7 @@ void ExperimentService::initPresets() {
         "2. Remolino central",
         [](ExperimentConfig& config) {
             config.field = VectorField::rotational(25.0, 25.0, 1.0);
-            config.fieldView = {FieldPresetType::Rotational, 1.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Rotational, 1.0, 25.0, 25.0, "-(y-25)", "x-25"};
             config.boat.setPosition(Vec2d(15.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -164,7 +253,7 @@ void ExperimentService::initPresets() {
         "3. Canal con obstáculo",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(1.5, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 1.5, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 1.5, 25.0, 25.0, "1.5", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -189,7 +278,7 @@ void ExperimentService::initPresets() {
         "4. Zona turbulenta",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(3.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 3.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 3.0, 25.0, 25.0, "3.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -212,7 +301,7 @@ void ExperimentService::initPresets() {
         "5. Laberinto de canales",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(1.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 1.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 1.0, 25.0, 25.0, "1.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 5.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -239,7 +328,7 @@ void ExperimentService::initPresets() {
         "6. Zona de rápidos",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(4.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 4.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 4.0, 25.0, 25.0, "4.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -261,7 +350,7 @@ void ExperimentService::initPresets() {
         "7. Efecto Venturi",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(1.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 1.0, 30.0, 15.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 1.0, 30.0, 15.0, "1.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(60, 30);
@@ -292,7 +381,7 @@ void ExperimentService::initPresets() {
         "8. Puerto con rompeolas",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(0.5, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 0.5, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 0.5, 25.0, 25.0, "0.5", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -326,7 +415,7 @@ void ExperimentService::initPresets() {
         "9. Corrientes en capas",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(2.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 2.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 2.0, 25.0, 25.0, "2.0", "0.0"};
             config.boat.setPosition(Vec2d(5.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -346,7 +435,7 @@ void ExperimentService::initPresets() {
         "10. Corriente oscilatoria",
         [](ExperimentConfig& config) {
             config.field = VectorField::uniform(2.0, 0.0);
-            config.fieldView = {FieldPresetType::Uniform, 2.0, 25.0, 25.0};
+            config.fieldView = FieldConfigView{FieldPresetType::Uniform, 2.0, 25.0, 25.0, "2.0", "0.0"};
             config.boat.setPosition(Vec2d(25.0, 25.0));
             config.boat.setOrientation(0.0);
             config.scenario = Scenario(50, 50);
@@ -377,7 +466,7 @@ void ExperimentService::initPresets() {
                     -0.08 * dy + 0.25 * dx
                 );
             });
-            config.fieldView = {FieldPresetType::Custom, 0.0, cx, cy};
+            config.fieldView = FieldConfigView{FieldPresetType::Custom, 0.0, cx, cy, "-0.08*(x-25)-0.25*(y-25)", "-0.08*(y-25)+0.25*(x-25)"};
             config.boat.setPosition(Vec2d(40.0, 16.0));
             config.boat.setOrientation(3.14159);
             config.scenario = Scenario(50, 50);
