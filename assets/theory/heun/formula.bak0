@@ -1,5 +1,0 @@
-\begin{aligned}
-k_1 &= f(t_n,y_n) \\
-k_2 &= f\bigl(t_n+h,\, y_n+h k_1\bigr) \\
-y_{n+1} &= y_n + \frac{h}{2}(k_1+k_2)
-\end{aligned}

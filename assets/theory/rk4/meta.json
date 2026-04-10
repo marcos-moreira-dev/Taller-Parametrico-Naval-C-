@@ -5,5 +5,5 @@
   "difficulty": 4,
   "graphId": "rk4_decay",
   "relatedScenario": "2. Remolino central",
-  "description": "RK4 usa cuatro evaluaciones de la derivada por paso. Es más costoso que Euler, pero mucho más estable para trayectorias largas y campos curvos."
+  "description": "Runge-Kutta de cuarto orden es uno de los métodos numéricos más conocidos porque logra un equilibrio muy útil entre costo computacional y precisión. En vez de una sola pendiente, evalúa varias pendientes intermedias y construye una combinación ponderada. Así obtiene resultados mucho más confiables sin llegar todavía a técnicas más pesadas de integración adaptativa."
 }

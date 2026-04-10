@@ -31,15 +31,6 @@ std::vector<std::string> splitLines(const std::string& text) {
     return lines;
 }
 
-std::string replaceAllCopy(std::string text, const std::string& from, const std::string& to) {
-    size_t pos = 0;
-    while ((pos = text.find(from, pos)) != std::string::npos) {
-        text.replace(pos, from.size(), to);
-        pos += to.size();
-    }
-    return text;
-}
-
 } // namespace
 
 std::string TheoryMarkdownRenderer::toHtml(const std::string& markdownUtf8) const {
@@ -72,7 +63,9 @@ std::string TheoryMarkdownRenderer::toHtml(const std::string& markdownUtf8) cons
 
         if (inMathBlock) {
             if (line == "$$") {
-                html << "<div class='math-block'>" << escapeHtml(TheoryMarkdownRenderer::latexToPlainText(mathBuffer.str())) << "</div>\n";
+                const std::string mathText = trim(mathBuffer.str());
+                html << "<div class='math-block'><pre>" << escapeHtml(mathText)
+                     << "</pre></div>\n";
                 mathBuffer.str({});
                 mathBuffer.clear();
                 inMathBlock = false;
@@ -122,6 +115,35 @@ std::string TheoryMarkdownRenderer::toHtml(const std::string& markdownUtf8) cons
             continue;
         }
 
+        if (line.rfind("> ", 0) == 0) {
+            flushParagraph();
+            flushList();
+            html << "<div class='note-box'>" << processInlineMarkup(line.substr(2)) << "</div>\n";
+            continue;
+        }
+
+        static const std::regex imageRegex(R"(^!\[([^\]]*)\]\(([^\)]+)\)$)");
+        std::smatch imageMatch;
+        if (std::regex_match(line, imageMatch, imageRegex)) {
+            flushParagraph();
+            flushList();
+            const auto alt = trim(imageMatch[1].str());
+            const auto src = trim(imageMatch[2].str());
+            const bool isMathImage = alt == "math" || src.find("math/block_") != std::string::npos;
+            if (isMathImage) {
+                html << "<div class='math-block math-image-block'><img class='block-math-img' src=\"" << escapeAttribute(src)
+                     << "\" alt=\"bloque matematico\" /></div>\n";
+            } else {
+                html << "<figure class='theory-figure'><img src=\"" << escapeAttribute(src)
+                     << "\" alt=\"" << escapeAttribute(alt) << "\" />";
+                if (!alt.empty()) {
+                    html << "<figcaption>" << escapeHtml(alt) << "</figcaption>";
+                }
+                html << "</figure>\n";
+            }
+            continue;
+        }
+
         if (!paragraph.str().empty()) {
             paragraph << ' ';
         }
@@ -141,6 +163,13 @@ std::string TheoryMarkdownRenderer::escapeHtml(const std::string& text) {
     return out;
 }
 
+std::string TheoryMarkdownRenderer::escapeAttribute(const std::string& text) {
+    std::string out = escapeHtml(text);
+    out = std::regex_replace(out, std::regex("\""), "&quot;");
+    out = std::regex_replace(out, std::regex("'"), "&#39;");
+    return out;
+}
+
 std::string TheoryMarkdownRenderer::processInlineMarkup(const std::string& text) {
     std::string output;
     size_t i = 0;
@@ -150,8 +179,21 @@ std::string TheoryMarkdownRenderer::processInlineMarkup(const std::string& text)
     };
 
     while (i < text.size()) {
+        if (text.compare(i, 10, "[[MATHIMG:") == 0) {
+            const size_t sep = text.find('|', i + 10);
+            const size_t end = text.find("]]", i + 10);
+            if (sep != std::string::npos && end != std::string::npos && sep < end) {
+                const std::string src = text.substr(i + 10, sep - (i + 10));
+                const std::string alt = text.substr(sep + 1, end - (sep + 1));
+                output += "<img class='inline-math-img' src=\"" + escapeAttribute(src)
+                       + "\" alt=\"" + escapeAttribute(alt) + "\" />";
+                i = end + 2;
+                continue;
+            }
+        }
+
         if (i + 1 < text.size() && text[i] == '*' && text[i + 1] == '*') {
-            size_t end = text.find("**", i + 2);
+            const size_t end = text.find("**", i + 2);
             if (end != std::string::npos) {
                 output += "<strong>" + escapeHtml(text.substr(i + 2, end - i - 2)) + "</strong>";
                 i = end + 2;
@@ -160,7 +202,7 @@ std::string TheoryMarkdownRenderer::processInlineMarkup(const std::string& text)
         }
 
         if (text[i] == '`') {
-            size_t end = text.find('`', i + 1);
+            const size_t end = text.find('`', i + 1);
             if (end != std::string::npos) {
                 output += "<code>" + escapeHtml(text.substr(i + 1, end - i - 1)) + "</code>";
                 i = end + 1;
@@ -169,18 +211,20 @@ std::string TheoryMarkdownRenderer::processInlineMarkup(const std::string& text)
         }
 
         if (i + 1 < text.size() && text[i] == '$' && text[i + 1] == '$') {
-            size_t end = text.find("$$", i + 2);
+            const size_t end = text.find("$$", i + 2);
             if (end != std::string::npos) {
-                output += "<span class='math-inline'>" + escapeHtml(TheoryMarkdownRenderer::latexToPlainText(text.substr(i + 2, end - i - 2))) + "</span>";
+                const std::string latex = text.substr(i + 2, end - i - 2);
+                output += "<span class='math-inline'>$$" + latex + "$$</span>";
                 i = end + 2;
                 continue;
             }
         }
 
         if (text[i] == '$') {
-            size_t end = text.find('$', i + 1);
+            const size_t end = text.find('$', i + 1);
             if (end != std::string::npos) {
-                output += "<span class='math-inline'>" + escapeHtml(TheoryMarkdownRenderer::latexToPlainText(text.substr(i + 1, end - i - 1))) + "</span>";
+                const std::string latex = text.substr(i + 1, end - i - 1);
+                output += "<span class='math-inline'>$" + latex + "$</span>";
                 i = end + 1;
                 continue;
             }
@@ -191,50 +235,6 @@ std::string TheoryMarkdownRenderer::processInlineMarkup(const std::string& text)
     }
 
     return output;
-}
-
-std::string TheoryMarkdownRenderer::latexToPlainText(std::string latex) {
-    latex = trim(latex);
-    latex = replaceAllCopy(latex, "\r", "");
-    latex = replaceAllCopy(latex, "\n", " ");
-    latex = replaceAllCopy(latex, "\\mathbf{", "");
-    latex = replaceAllCopy(latex, "\\mathrm{", "");
-    latex = replaceAllCopy(latex, "\\text{", "");
-    latex = replaceAllCopy(latex, "\\operatorname{", "");
-    latex = replaceAllCopy(latex, "\\big", "");
-    latex = replaceAllCopy(latex, "\\Big", "");
-    latex = replaceAllCopy(latex, "\\frac{", "frac(");
-    latex = replaceAllCopy(latex, "\\sqrt{", "sqrt(");
-    latex = replaceAllCopy(latex, "\\cdot", " * ");
-    latex = replaceAllCopy(latex, "\\to", " -> ");
-    latex = replaceAllCopy(latex, "\\qquad", "   ");
-    latex = replaceAllCopy(latex, "\\quad", " ");
-    latex = replaceAllCopy(latex, "\\,", " ");
-    latex = replaceAllCopy(latex, "\\approx", " approx ");
-    latex = replaceAllCopy(latex, "\\lVert", "|");
-    latex = replaceAllCopy(latex, "\\rVert", "|");
-    latex = replaceAllCopy(latex, "\\vec", "vec");
-    latex = replaceAllCopy(latex, "\\nabla", "nabla");
-    latex = replaceAllCopy(latex, "\\Gamma", "Gamma");
-    latex = replaceAllCopy(latex, "\\pi", "pi");
-    latex = replaceAllCopy(latex, "\\circ", "deg");
-    latex = replaceAllCopy(latex, "\\left", "");
-    latex = replaceAllCopy(latex, "\\right", "");
-    latex = replaceAllCopy(latex, "\\begin{aligned}", "");
-    latex = replaceAllCopy(latex, "\\end{aligned}", "");
-    latex = replaceAllCopy(latex, "\\begin{array}{l}", "");
-    latex = replaceAllCopy(latex, "\\end{array}", "");
-    latex = replaceAllCopy(latex, "\\", "");
-    latex = replaceAllCopy(latex, "{", "");
-    latex = replaceAllCopy(latex, "}", "");
-    latex = replaceAllCopy(latex, "&", "");
-    latex = replaceAllCopy(latex, "^", "^");
-    latex = replaceAllCopy(latex, "_", "_");
-    latex = replaceAllCopy(latex, "  ", " ");
-    latex = replaceAllCopy(latex, "  ", " ");
-    latex = replaceAllCopy(latex, "frac(", "(");
-    latex = replaceAllCopy(latex, ")(", ")/(");
-    return trim(latex);
 }
 
 } // namespace tp::education

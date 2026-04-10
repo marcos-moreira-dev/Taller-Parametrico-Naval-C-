@@ -1,5 +1,8 @@
 add_library(tp_presentation
     main_window/MainWindow.cpp
+    main_window/MainWindowDocument.cpp
+    main_window/MainWindowView.cpp
+    main_window/MainWindowSimulation.cpp
     widgets/SimulationCanvas.cpp
     widgets/SimpleGraph.cpp
     widgets/FieldArrowSampler.cpp
@@ -9,13 +12,15 @@ add_library(tp_presentation
     widgets/LatexBitmapPanel.cpp
     widgets/ToastNotification.cpp
     widgets/WaterParticleSystem.cpp
-    widgets/EquationRenderer.cpp
     widgets/VideoExporter.cpp
     widgets/WaterAnimationSystem.cpp
     widgets/Water3DCanvas.cpp
     panels/TheoryPanel.cpp
     panels/EditorPanel.cpp
     panels/FieldEditorPanel.cpp
+    panels/LeftPanel.cpp
+    panels/RightPanel.cpp
+    panels/BottomPanel.cpp
 )
 
 find_package(OpenGL REQUIRED)

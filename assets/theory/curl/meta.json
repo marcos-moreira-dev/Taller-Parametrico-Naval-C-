@@ -5,5 +5,5 @@
   "difficulty": 5,
   "graphId": "curl_field",
   "relatedScenario": "2. Remolino central",
-  "description": "El rotor mide la tendencia del flujo a hacer girar una partícula material alrededor de su propio centro. Es la medida local de vorticidad en 2D."
+  "description": "El rotor o curl mide la tendencia local de un campo a hacer girar una partícula o una pequeña rueda de prueba. Mientras la divergencia habla de salir o entrar, el rotor habla de giro. En un problema de navegación, esta idea ayuda a distinguir campos que desvían linealmente de aquellos que inducen circulación local y remolino."
 }

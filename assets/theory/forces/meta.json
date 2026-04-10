@@ -5,5 +5,5 @@
   "difficulty": 2,
   "graphId": "vector_sum",
   "relatedScenario": "3. Canal con obstáculo",
-  "description": "El movimiento observado surge de sumar motor, corriente, arrastre y, en modelos más ricos, sustentación. La mecánica del sistema es vectorial."
+  "description": "Mover un bote no depende de una sola causa. La velocidad respecto al suelo y la fuerza total surgen de una combinación entre propulsión, corriente, arrastre y otras contribuciones del entorno. Este tema sirve para recordar que un sistema físico casi nunca se explica con una sola flecha. Lo importante es aprender a componer efectos y entender qué parte de la respuesta observable proviene de cada agente."
 }

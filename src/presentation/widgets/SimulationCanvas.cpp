@@ -329,16 +329,21 @@ void SimulationCanvas::drawVectorField(wxDC& dc) {
 
     for (const auto& arrow : arrows) {
         wxPoint center = worldToScreen(arrow.x, arrow.y);
-        const double normalized = std::clamp(arrow.magnitude / maxMagnitude, 0.0, 1.0);
-        const int penWidth = normalized < 0.35 ? 1 : (normalized < 0.75 ? 2 : 3);
+        const double referenceMagnitude = 10.0;
+        const double normalized = std::clamp(arrow.magnitude / referenceMagnitude, 0.0, 1.0);
+        const int penWidth = normalized < 0.30 ? 1 : (normalized < 0.70 ? 2 : 3);
 
-        const int red = static_cast<int>(165 + normalized * 90.0);
-        const int green = static_cast<int>(220 + normalized * 35.0);
+        // Débil: celeste frío. Fuerte: blanco brillante.
+        const int red = static_cast<int>(70 + normalized * 185.0);
+        const int green = static_cast<int>(150 + normalized * 105.0);
         const int blue = 255;
         const wxColour core(red, green, blue);
-        const wxColour glow(255, 255, 255);
+        const wxColour glow(
+            static_cast<unsigned char>(180 + normalized * 75.0),
+            static_cast<unsigned char>(220 + normalized * 35.0),
+            255);
 
-        const double arrowLength = std::clamp(8.0 + normalized * 10.0, 8.0, 18.0);
+        const double arrowLength = std::clamp(7.0 + normalized * 12.0, 7.0, 19.0);
         const double angle = std::atan2(arrow.direction.y, arrow.direction.x);
 
         wxPoint end(
@@ -352,7 +357,7 @@ void SimulationCanvas::drawVectorField(wxDC& dc) {
         dc.DrawLine(center.x, center.y, end.x, end.y);
 
         const double arrowAngle = 0.5;
-        const int arrowSize = static_cast<int>(6 + normalized * 4);
+        const int arrowSize = static_cast<int>(5 + normalized * 5);
         wxPoint arrow1(
             end.x - static_cast<int>(arrowSize * std::cos(angle - arrowAngle)),
             end.y - static_cast<int>(arrowSize * std::sin(angle - arrowAngle))

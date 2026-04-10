@@ -181,6 +181,11 @@ void MathGraph::drawGrid(wxDC& dc) {
 
 void MathGraph::drawAxes(wxDC& dc) {
     dc.SetPen(wxPen(wxColour(100, 100, 100), 2));
+    const wxSize size = GetClientSize();
+    const int marginLeft = 58;
+    const int marginRight = 28;
+    const int marginTop = 48;
+    const int marginBottom = 46;
     
     // Eje X
     wxPoint xStart = worldToScreen(xMin_, 0);
@@ -214,7 +219,7 @@ void MathGraph::drawAxes(wxDC& dc) {
         if (std::abs(x) > xStep / 10) {
             wxPoint pos = worldToScreen(x, 0);
             wxString label = formatTick(x, xStep);
-            dc.DrawText(label, pos.x - 10, pos.y + 5);
+            dc.DrawText(label, pos.x - 10, std::min(pos.y + 5, size.GetHeight() - marginBottom + 4));
         }
     }
     
@@ -224,14 +229,15 @@ void MathGraph::drawAxes(wxDC& dc) {
         if (std::abs(y) > yStep / 10) {
             wxPoint pos = worldToScreen(0, y);
             wxString label = formatTick(y, yStep);
-            dc.DrawText(label, pos.x + 5, pos.y - 8);
+            const int textX = std::max(6, std::min(pos.x + 5, marginLeft - 28));
+            dc.DrawText(label, textX, pos.y - 8);
         }
     }
     
     // Etiquetas de ejes
-    wxSize size = GetClientSize();
-    dc.DrawText(xLabel_, size.GetWidth() / 2, size.GetHeight() - 20);
-    dc.DrawRotatedText(yLabel_, 15, size.GetHeight() / 2, 90);
+    wxSize xLabelSize = dc.GetTextExtent(xLabel_);
+    dc.DrawText(xLabel_, size.GetWidth() - marginRight - xLabelSize.GetWidth(), size.GetHeight() - 24);
+    dc.DrawRotatedText(yLabel_, 14, marginTop + 20, 90);
 }
 
 void MathGraph::drawFunctions(wxDC& dc) {
@@ -292,7 +298,8 @@ void MathGraph::drawVectorField(wxDC& dc) {
             double vx = std::get<2>(sample);
             double vy = std::get<3>(sample);
             double mag = std::get<4>(sample);
-            const double normalized = std::clamp(mag / maxMagnitude, 0.0, 1.0);
+            const double referenceMagnitude = 10.0;
+            const double normalized = std::clamp(mag / referenceMagnitude, 0.0, 1.0);
             const wxColour color(
                 static_cast<unsigned char>(140 + normalized * 115.0),
                 static_cast<unsigned char>(200 + normalized * 55.0),
@@ -346,13 +353,13 @@ void MathGraph::drawTrajectories(wxDC& dc) {
 void MathGraph::drawTitle(wxDC& dc) {
     if (title_.IsEmpty()) return;
     
-    dc.SetFont(wxFont(wxFontInfo(14).Family(wxFONTFAMILY_MODERN).Bold()));
+    dc.SetFont(wxFont(wxFontInfo(13).Family(wxFONTFAMILY_MODERN).Bold()));
     dc.SetTextForeground(wxColour(50, 50, 50));
     
     wxSize size = GetClientSize();
     wxSize textSize = dc.GetTextExtent(title_);
     
-    dc.DrawText(title_, (size.GetWidth() - textSize.GetWidth()) / 2, 10);
+    dc.DrawText(title_, (size.GetWidth() - textSize.GetWidth()) / 2, 12);
 }
 
 void MathGraph::drawLegend(wxDC& dc) {
@@ -360,14 +367,15 @@ void MathGraph::drawLegend(wxDC& dc) {
     
     dc.SetFont(wxFont(wxFontInfo(10).Family(wxFONTFAMILY_MODERN)));
     
-    int x = GetClientSize().GetWidth() - 150;
-    int y = 40;
+    int x = GetClientSize().GetWidth() - 170;
+    int y = 52;
     int lineHeight = 20;
+    int legendWidth = 155;
     
     // Fondo
     dc.SetPen(wxPen(wxColour(200, 200, 200)));
     dc.SetBrush(wxBrush(wxColour(255, 255, 255, 230)));
-    dc.DrawRectangle(x - 10, y - 5, 140, functions_.size() * lineHeight + 10);
+    dc.DrawRoundedRectangle(x - 10, y - 5, legendWidth, functions_.size() * lineHeight + 10, 6);
     
     // Leyendas
     for (const auto& func : functions_) {

@@ -6,6 +6,7 @@
 #endif
 
 #include <wx/wx.h>
+#include <wx/html/htmlwin.h>
 #include <wx/webview.h>
 
 namespace tp::presentation {
@@ -15,6 +16,7 @@ public:
     MathHtmlPanel(wxWindow* parent, const wxString& htmlBody = wxEmptyString);
 
     void setHtmlBody(const wxString& htmlBody);
+    void setHtmlBody(const wxString& htmlBody, const wxString& baseUrl);
     void setHtmlDocument(const wxString& htmlDocument, const wxString& baseUrl = wxString());
 
 private:
@@ -24,8 +26,8 @@ private:
     wxString htmlBody_;
     wxString baseUrl_;
     bool htmlIsDocument_;
+    wxHtmlWindow* htmlWindow_;
     wxWebView* webView_;
-    wxTextCtrl* fallbackCtrl_;
 };
 
 } // namespace tp::presentation

@@ -1,45 +1,31 @@
 ## Idea central
 
-Heun primero predice con Euler y luego corrige. Esa corrección usa la pendiente final del paso y la promedia con la inicial. El resultado es una aproximación mucho más fiel con un coste todavía moderado.
+Heun corrige el paso de Euler usando un promedio entre la pendiente inicial y una pendiente estimada al final del intervalo. Por eso se conoce como Euler mejorado.
 
-Puede verse como una forma sencilla del método trapezoidal: en lugar de una sola pendiente, utiliza una pendiente promedio.
+El método sigue siendo simple, pero ya introduce la idea de predicción y corrección.
+
+La intuición física es valiosa: si la pendiente cambia dentro del paso, conviene no quedarse con una sola fotografía local. Heun mejora precisamente eso al usar una predicción y una corrección ligera.
 
 ## Ejercicio resuelto
 
-**Problema.** Resolver
+**Problema.** Para [[MATHIMG:math/inline_fdfc2c1eb32a.png|y'=y]], [[MATHIMG:math/inline_7130510c630d.png|y(0)=1]] y [[MATHIMG:math/inline_b2be435b8352.png|h=0.1]], calcula un paso de Heun.
 
-$$
-\frac{dy}{dt}=y,
-\qquad
-y(0)=1,
-\qquad
-h=0.1
-$$
+**Solución.** Primero,
 
-Se calcula primero
+![math](math/block_f0d64bc8353f.png)
 
-$$
-k_1 = 1, \qquad y^* = 1 + 0.1\cdot 1 = 1.1
-$$
+Luego estimamos la pendiente final:
 
-Luego
+![math](math/block_a83a3159ad54.png)
 
-$$
-k_2 = 1.1
-$$
+Ahora corregimos:
 
-Finalmente
-
-$$
-y_1 = 1 + \frac{0.1}{2}(1+1.1)=1.105
-$$
-
-La exacta vale
-
-$$
-e^{0.1}\approx 1.10517
-$$
+![math](math/block_ffa5b378672f.png)
 
 ## Qué observar en la simulación
 
-Heun suele capturar mejor la forma global de la trayectoria cuando el flujo cambia moderadamente dentro del paso temporal.
+Compara el resultado de Heun con Euler usando el mismo paso. Heun suele desviarse menos de la curva esperada.
+
+## Dónde se usa
+
+Es común en cursos de análisis numérico, simulación de sistemas dinámicos y comparación de integradores de orden bajo.

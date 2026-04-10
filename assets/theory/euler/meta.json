@@ -5,5 +5,5 @@
   "difficulty": 2,
   "graphId": "euler_vs_exact",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "Euler aproxima el siguiente estado usando solamente la pendiente actual. Es rápido, pero su error crece con facilidad si el paso temporal es grande."
+  "description": "El método de Euler es la puerta de entrada a la integración numérica. Su idea es directa: usar la pendiente conocida en el instante actual para estimar el valor siguiente. No es el método más preciso, pero sí el más transparente para entender cómo una computadora convierte una ecuación diferencial en una secuencia de actualizaciones. En el taller sirve como referencia base para comparar otros métodos más refinados."
 }

@@ -200,13 +200,6 @@ void FieldEditorPanel::applyControlsToDocument() {
         return;
     }
 
-    if (mainWindow_->getCanvas()) {
-        mainWindow_->getCanvas()->setShowField(true);
-    }
-    if (mainWindow_->getLeftPanel()) {
-        mainWindow_->getLeftPanel()->setFieldLayerVisible(true);
-    }
-
     mainWindow_->setModified(true);
     mainWindow_->requestSimulationReset();
     mainWindow_->updateCanvas();

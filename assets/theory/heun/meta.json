@@ -5,5 +5,5 @@
   "difficulty": 3,
   "graphId": "heun_exp",
   "relatedScenario": "2. Remolino central",
-  "description": "Heun mejora Euler promediando la pendiente al inicio y al final del paso. Es un buen compromiso entre costo y precisión."
+  "description": "El método de Heun, también llamado Euler mejorado, intenta corregir una de las debilidades más claras de Euler: confiar solo en la pendiente inicial del intervalo. Heun toma una pendiente al inicio, predice un valor provisional y luego promedia la información inicial y final. El resultado sigue siendo didáctico y relativamente simple, pero gana estabilidad y precisión en muchos problemas prácticos."
 }

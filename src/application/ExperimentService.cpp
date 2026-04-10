@@ -45,7 +45,7 @@ void ExperimentService::createNewExperiment() {
     LOG_INFO_MACRO("Nuevo experimento creado");
 }
 
-void ExperimentService::loadExperiment(const std::string& filepath) {
+bool ExperimentService::loadExperiment(const std::string& filepath) {
     LOG_INFO_MACRO("Cargando experimento desde: " + filepath);
     
     auto loaded = persistence::ScenarioLoader::loadFromFile(filepath);
@@ -64,8 +64,10 @@ void ExperimentService::loadExperiment(const std::string& filepath) {
         rebuildFieldFromView();
         notifyConfigChange();
         LOG_INFO_MACRO("Experimento cargado exitosamente");
+        return true;
     } else {
         LOG_ERROR_MACRO("No se pudo cargar el experimento desde: " + filepath);
+        return false;
     }
 }
 

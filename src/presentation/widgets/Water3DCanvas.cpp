@@ -469,12 +469,19 @@ void Water3DCanvas::render() {
     const float domainWidth = scenario_ ? static_cast<float>(scenario_->getWidth()) : VISIBLE_SIZE;
     const float domainHeight = scenario_ ? static_cast<float>(scenario_->getHeight()) : VISIBLE_SIZE;
     const float domainSize = std::max(domainWidth, domainHeight);
-    float halfSpan = domainSize * 0.55f;
-    if (aspect >= 1.0f) {
-        glOrtho(-halfSpan * aspect, halfSpan * aspect, -halfSpan, halfSpan, -200.0, 200.0);
+    const float fitPadding = 1.04f;
+    const float domainAspect = (domainHeight > 0.0f) ? (domainWidth / domainHeight) : 1.0f;
+
+    float halfWidth = (domainWidth * 0.5f) * fitPadding;
+    float halfHeight = (domainHeight * 0.5f) * fitPadding;
+
+    if (aspect > domainAspect) {
+        halfWidth = halfHeight * aspect;
     } else {
-        glOrtho(-halfSpan, halfSpan, -halfSpan / aspect, halfSpan / aspect, -200.0, 200.0);
+        halfHeight = halfWidth / aspect;
     }
+
+    glOrtho(-halfWidth, halfWidth, -halfHeight, halfHeight, -200.0, 200.0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -482,7 +489,7 @@ void Water3DCanvas::render() {
     const float centerX = domainWidth * 0.5f;
     const float centerZ = domainHeight * 0.5f;
     const float camX = centerX;
-    const float camY = domainSize * 1.8f;
+    const float camY = domainSize * 1.35f;
     const float camZ = centerZ;
 
     gluLookAt(camX, camY, camZ, centerX, 0.0, centerZ, 0.0, 0.0, -1.0);

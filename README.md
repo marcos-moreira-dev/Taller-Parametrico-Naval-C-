@@ -1,235 +1,148 @@
-# Taller Paramétrico de Navegación y Campos 2D
+<p align="center">
+  <img src="README_imagenes/logo%20taller%20parametrico.png" alt="Logo oficial de Taller Paramétrico" width="460" />
+</p>
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)]()
-[![C++](https://img.shields.io/badge/C++-20-orange)]()
-[![License](https://img.shields.io/badge/license-Educational-lightgrey)]()
+<h1 align="center">Taller Paramétrico</h1>
+<p align="center"><strong>Navegación y Campos 2D</strong></p>
 
-**Aplicación educativa de escritorio para explorar física de fluidos, campos vectoriales y métodos numéricos.**
+<p align="center">
+  Aplicación educativa de escritorio para estudiar navegación 2D, campos vectoriales,
+  métodos numéricos y visualización matemática en un entorno local para Windows.
+</p>
 
----
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.1.0-blue" alt="Version 1.1.0" />
+  <img src="https://img.shields.io/badge/C%2B%2B-20-orange" alt="C++20" />
+  <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6" alt="Windows 10/11" />
+  <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blueviolet" alt="GPL 3.0 or later" />
+</p>
 
-## 📖 DESCRIPCIÓN
+## Qué es
 
-Simulador interactivo que combina física computacional, visualización gráfica y contenido educativo para el aprendizaje de:
+**Taller Paramétrico** es un software educativo autocontenido pensado para aprender viendo. Combina simulación, teoría guiada y visualización de escenarios para que conceptos como campos vectoriales, Euler, Heun, Runge-Kutta, trayectorias paramétricas, circulación, divergencia o rotor no se queden solo en una fórmula aislada.
 
-- **Campos vectoriales** y su dinámica
-- **Ecuaciones diferenciales ordinarias (EDOs)**
-- **Métodos numéricos** (Euler, Heun, RK4)
-- **Física de fluidos** aplicada a navegación
+La idea del proyecto es sencilla: que el usuario pueda pasar de una explicación matemática a una escena interactiva, modificar parámetros y observar cómo cambia el movimiento del bote dentro del campo. No intenta ser un framework científico generalista. Está enfocado en ser una herramienta clara, didáctica y visual para estudio, práctica y demostración.
 
----
+## Estado del proyecto
 
-## ✨ CARACTERÍSTICAS
+El proyecto ya está en un punto funcional y presentable para GitHub como aplicación de escritorio **Windows-first**.
 
-### 🌊 Simulación Física
-- **Hidrodinámica realista**: Arrastre viscoso/cuadrático, sustentación
-- **3 métodos numéricos**: Euler, Euler Mejorado, RK4 con comparación visual
-- **10 escenarios predefinidos**: Ríos, remolinos, efecto Venturi, canales
-- **Auto-thrust**: Navegación automática optimizada
+La política actual del repositorio es esta:
 
-### 🎨 Visualización
-- **Campo vectorial dinámico** con flechas coloridas
-- **Sistema de partículas**: Agua, espuma, estela y salpicaduras
-- **Gráficas en tiempo real** estilo matplotlib
-- **Renderizado de ecuaciones** LaTeX
+- plataforma oficial: **Windows 10/11 x64**;
+- toolchain oficial: **CMake + Ninja + MinGW64 + wxWidgets local**;
+- enfoque: **aplicación educativa de escritorio**;
+- editor de campo: **experimental / V2**;
+- teoría: fortalecida con **figuras estáticas, fórmulas principales y ejercicios guiados**.
 
-### 📚 Contenido Educativo
-- **14 conceptos teóricos** organizados por categorías
-- **Fórmulas interactivas** con explicaciones paso a paso
-- **Conexión teoría-práctica**: Botón "Ver en simulación"
+## Pantallas del programa
 
-### 🛠️ Herramientas
-- **Editor de escenarios**: Pintar terreno, obstáculos, campo personalizado
-- **Undo/Redo**: Historial de 50 comandos
-- **Exportación**: PNG, CSV con trayectorias completas
+Las imágenes del README viven en la carpeta raíz **`README_imagenes/`**, usando los nombres elegidos para las capturas.
 
----
+### `pantalla principal.png`
 
-## 🚀 INICIO RÁPIDO
+Esta vista resume la identidad general del programa. A la izquierda aparece el panel de navegación con los escenarios disponibles. En el centro se visualiza el escenario activo y a la derecha están las propiedades editables del campo, del bote o de los parámetros numéricos. Es la puerta de entrada al flujo completo del software: elegir un escenario, modificar condiciones y luego simular.
 
-### Windows (MSYS2/MinGW)
+<p align="center">
+  <img src="README_imagenes/pantalla%20principal.png" alt="Pantalla principal" width="900" />
+</p>
 
-```bash
-# Clonar repositorio
-git clone <repo-url>
-cd cplus
+### `teoría.png`
 
-# Compilar (automático)
+La pantalla de teoría es el corazón didáctico del proyecto. Presenta una organización por conceptos, una descripción con contexto, fórmula principal, figura de estudio, desarrollo explicado y ejercicio guiado. La intención es que el usuario no vea solo “texto bonito”, sino una secuencia pedagógica: idea, expresión matemática, interpretación y aplicación.
+
+<p align="center">
+  <img src="README_imagenes/teor%C3%ADa.png" alt="Pantalla de teoría" width="900" />
+</p>
+
+### `simulación 3d.png`
+
+Esta captura muestra la escena activa con una presentación más inmersiva del entorno. Aunque el proyecto está centrado en navegación y campos 2D, esta vista sirve para reforzar la percepción espacial del escenario, darle carácter visual al software y volver más atractiva la exploración de configuraciones como el Efecto Venturi o los puertos con obstáculos.
+
+<p align="center">
+  <img src="README_imagenes/simulaci%C3%B3n%203d.png" alt="Simulación 3D" width="900" />
+</p>
+
+### `simulacion y graficas.png`
+
+Aquí se ve la parte más analítica del programa. La simulación corre mientras se registran gráficas de velocidad, energía y posición. Esta pantalla conecta la experiencia visual con la lectura cuantitativa del método numérico elegido. Es donde el proyecto deja de ser solo una escena interactiva y se convierte en una herramienta de estudio comparativo.
+
+<p align="center">
+  <img src="README_imagenes/simulacion%20y%20graficas.png" alt="Simulación y gráficas" width="900" />
+</p>
+
+## Qué puedes estudiar dentro del taller
+
+El módulo teórico y la simulación cubren, entre otros temas:
+
+- campos vectoriales;
+- ecuaciones diferenciales ordinarias;
+- método de Euler;
+- método de Heun;
+- método de Runge-Kutta de orden 4;
+- composición de velocidades y fuerzas;
+- campo radial y campo rotacional;
+- energía cinética, trabajo y potencia propulsiva;
+- trayectorias y curvas paramétricas;
+- integral de línea, circulación, divergencia y rotor.
+
+## Flujo de uso
+
+Un recorrido típico dentro del programa es este:
+
+1. elegir un escenario o preset;
+2. ajustar parámetros del campo y del bote;
+3. ejecutar la simulación;
+4. observar trayectoria, vectores y resultados;
+5. revisar teoría y ejercicios guiados relacionados con el mismo concepto;
+6. comparar el comportamiento visual con las gráficas numéricas.
+
+## Compilación rápida en Windows
+
+```bat
 build.bat
-
-# O manualmente:
-cd build
-cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build . --target TallerParametrico
-
-# Ejecutar
-.\bin\TallerParametrico.exe
 ```
 
-### Linux/macOS
+También puedes usar:
 
-```bash
-# Compilar
-./scripts/build.sh
-
-# Ejecutar
-./build/bin/TallerParametrico
-```
-
----
-
-## 📁 ESTRUCTURA DEL PROYECTO
-
-```
-cplus/
-├── src/                          # Código fuente
-│   ├── app/                      # Punto de entrada
-│   ├── presentation/             # UI (wxWidgets)
-│   ├── application/              # Lógica de negocio
-│   ├── simulation/               # Física y métodos numéricos
-│   ├── domain/                   # Entidades del dominio
-│   └── shared/                   # Utilidades comunes
-├── tests/                        # Tests unitarios e integración
-├── docs/                         # Documentación
-├── assets/                       # Recursos (escenarios, teoría)
-├── scripts/                      # Scripts de build/utilidades
-├── build/                        # Build directory (gitignored)
-├── CMakeLists.txt               # Configuración CMake principal
-└── README.md                    # Este archivo
-```
-
----
-
-## 🧪 TESTING
-
-```bash
-# Ejecutar todos los tests
-build.bat test                   # Windows
-./scripts/run_all_tests.sh       # Linux/macOS
-
-# O con CTest
-cd build
-ctest --output-on-failure
-```
-
-**Cobertura actual**: 44 tests pasando ✅
-
----
-
-## 🛠️ DEPENDENCIAS
-
-- **C++20** compatible compiler
-- **CMake** 3.16+
-- **wxWidgets** 3.3.2+
-- **Ninja** o Make
-
-### Instalación de dependencias
-
-**Windows (MSYS2)**:
-```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
-```
-
-**Ubuntu/Debian**:
-```bash
-sudo apt-get install build-essential cmake ninja-build libwxgtk3.2-dev
-```
-
-**macOS**:
-```bash
-brew install cmake ninja wxwidgets
-```
-
----
-
-## 📦 RELEASE
-
-Para crear un instalador MSI:
-
-```bash
-# Windows
+```bat
+build.bat run
+build.bat rebuild
+build.bat test
 build.bat release
-
-# MSI (requiere WiX Toolset y variable WIX configurada)
-build.bat msi
 ```
 
----
+La salida principal queda en:
 
-## 📚 DOCUMENTACIÓN
-
-- [Arquitectura del sistema](docs/ARCHITECTURE_CONSOLIDATED.md)
-- [Guía de wxWidgets](docs/WXWIDGETS_GUIA.md)
-- [Especificación del producto](docs/product_spec_proyecto_cpp_taller_parametrico.md)
-- [Guía de deploy](docs/DEPLOY.md)
-- [Quick Start](docs/QUICKSTART.md)
-
----
-
-## 🐛 SOLUCIÓN DE PROBLEMAS
-
-### Error: "No se encuentra wxWidgets"
-
-En Windows, `build.bat` intenta reutilizar `build/wx_installed/` o recompilar wxWidgets con `build.bat wx`.
-En Linux/macOS, usa la instalación del sistema.
-
-Si falla:
-
-```bash
-# Windows: Asegurar que MSYS2 está en PATH
-set PATH=C:\msys64\mingw64\bin;%PATH%
-
-# Linux/macOS: Instalar wxWidgets
-sudo apt-get install libwxgtk3.2-dev  # Ubuntu
-brew install wxwidgets                 # macOS
+```text
+build\bin\TallerParametrico.exe
 ```
 
-### Error: "DLLs faltantes"
+## Estructura documental
 
-Copiar DLLs de MinGW al directorio del ejecutable:
+La documentación viva del proyecto está concentrada en:
 
-```bash
-cd build/bin
-cp /mingw64/bin/libgcc_s_seh-1.dll .
-cp /mingw64/bin/libstdc++-6.dll .
-cp /mingw64/bin/libwinpthread-1.dll .
-```
+- `docs/PRODUCT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/BUILD_WINDOWS.md`
+- `docs/THEORY_MODULE.md`
+- `docs/ROADMAP.md`
+- `docs/INDEX.md`
 
----
+## Limpieza para GitHub
 
-## 🤝 CONTRIBUIR
+El repositorio ya está preparado para publicarse con una política más limpia:
 
-1. Fork el repositorio
-2. Crea una rama (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit cambios (`git commit -am 'Añadir nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abrir Pull Request
+- no incluye carpetas de compilación ni artefactos generados;
+- `.gitignore` ya excluye ejecutables, logs, caches y builds;
+- se eliminó la carpeta antigua de imágenes del README en `docs/` para evitar duplicidad;
+- las capturas oficiales del README quedaron centralizadas en `README_imagenes/`.
 
----
+## Licencia
 
-## 📝 LICENCIA
+Este proyecto se distribuye bajo **GPL-3.0-or-later**.
 
-Proyecto educativo. Uso permitido para fines educativos y de investigación.
+Revisa también:
 
-**Bibliotecas de terceros**:
-- wxWidgets: LGPL
-- C++ Standard Library: Estándar ISO
-
----
-
-## 👥 AUTORES
-
-Proyecto desarrollado como Taller de C++ Avanzado.
-
----
-
-## 🙏 AGRADECIMIENTOS
-
-- Comunidad wxWidgets
-- Proyecto CMake
-- Contribuidores de código abierto
-
----
-
-<p align="center">⭐ Star este repo si te fue útil!</p>
+- `LICENSE`
+- `THIRD_PARTY_NOTICES.md`

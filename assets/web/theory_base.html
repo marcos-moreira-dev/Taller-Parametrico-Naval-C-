@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="stylesheet" href="katex/katex.min.css" />
+    <script defer src="katex/katex.min.js"></script>
+    <script defer src="katex/auto-render.min.js"></script>
     <style>
       html,
       body {
@@ -14,18 +17,22 @@
         overflow: auto;
       }
       body {
-        padding: 10px 14px 20px 14px;
-        line-height: 1.62;
+        padding: 18px 24px 28px 24px;
+        line-height: 1.68;
         font-size: 15px;
       }
+      .theory-page {
+        max-width: 920px;
+        margin: 0 auto;
+      }
       h2 {
-        margin: 0 0 12px 0;
-        font-size: 20px;
+        margin: 0 0 14px 0;
+        font-size: 22px;
         color: #16324f;
       }
       h3 {
-        margin: 18px 0 10px 0;
-        font-size: 16px;
+        margin: 20px 0 10px 0;
+        font-size: 17px;
         color: #16324f;
       }
       p {
@@ -46,22 +53,52 @@
         border-radius: 4px;
       }
       .math-inline {
-        font-family: "Cascadia Mono", Consolas, monospace;
-        background: #f4f7fb;
-        padding: 1px 4px;
-        border-radius: 4px;
+        color: #17365d;
       }
       .math-block {
-        margin: 12px 0;
-        padding: 10px 12px;
-        border-radius: 8px;
+        margin: 16px 0;
+        padding: 14px 18px;
+        border-radius: 10px;
         background: #f7fbff;
-        font-family: "Cascadia Mono", Consolas, monospace;
-        white-space: pre-wrap;
+        border: 1px solid #dde8f6;
+        overflow-x: auto;
+      }
+      .summary-card {
+        background: #f8fbff;
+        border: 1px solid #d9e6f5;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+      }
+      .katex-display {
+        margin: 0.7em 0;
+        text-align: left !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .katex-display > .katex {
+        text-align: left !important;
+        display: inline-block;
       }
     </style>
   </head>
   <body>
-    {{body_html}}
+    <div class="theory-page">{{body_html}}</div>
+    <script>
+      window.addEventListener('load', function () {
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '\\[', right: '\\]', display: true },
+              { left: '\\(', right: '\\)', display: false },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false,
+            strict: 'ignore'
+          });
+        }
+      });
+    </script>
   </body>
 </html>

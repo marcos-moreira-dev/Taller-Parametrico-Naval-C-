@@ -17,15 +17,6 @@ std::filesystem::path buildRootPath() {
 #endif
 }
 
-std::string trim(const std::string& value) {
-    const auto first = value.find_first_not_of(" \t\r\n");
-    if (first == std::string::npos) {
-        return {};
-    }
-    const auto last = value.find_last_not_of(" \t\r\n");
-    return value.substr(first, last - first + 1);
-}
-
 } // namespace
 
 TheoryRepository::TheoryRepository()
@@ -87,8 +78,30 @@ TheoryTopic TheoryRepository::parseTopic(const std::string& id, const std::files
     topic.relatedScenario = extractJsonString(meta, "relatedScenario");
     topic.graphId = extractJsonString(meta, "graphId");
     topic.difficulty = extractJsonInt(meta, "difficulty", 1);
+    topic.contentBasePath = topicDir.generic_string();
     topic.formulaLatex = readUtf8File(topicDir / "formula.tex");
     topic.bodyMarkdown = readUtf8File(topicDir / "body.md");
+
+    const auto exercisePath = topicDir / "exercise.md";
+    if (std::filesystem::exists(exercisePath)) {
+        topic.exerciseMarkdown = readUtf8File(exercisePath);
+    }
+
+    const auto figurePath = topicDir / "figure_main.png";
+    if (std::filesystem::exists(figurePath)) {
+        topic.figureMainPath = figurePath.generic_string();
+    }
+
+    const auto formulaImagePath = topicDir / "formula_main.png";
+    if (std::filesystem::exists(formulaImagePath)) {
+        topic.formulaImagePath = formulaImagePath.generic_string();
+    }
+
+    const auto figureNotePath = topicDir / "figure_note.md";
+    if (std::filesystem::exists(figureNotePath)) {
+        topic.figureNoteMarkdown = readUtf8File(figureNotePath);
+    }
+
     return topic;
 }
 
@@ -108,7 +121,7 @@ std::string TheoryRepository::readUtf8File(const std::filesystem::path& path) {
 }
 
 std::string TheoryRepository::extractJsonString(const std::string& json, const std::string& key) {
-    const std::regex pattern("\"" + key + "\"\\s*:\\s*\"([^\"]*)\"");
+    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
     std::smatch match;
     if (std::regex_search(json, match, pattern)) {
         return match[1].str();
@@ -117,7 +130,7 @@ std::string TheoryRepository::extractJsonString(const std::string& json, const s
 }
 
 int TheoryRepository::extractJsonInt(const std::string& json, const std::string& key, int fallback) {
-    const std::regex pattern("\"" + key + "\"\\s*:\\s*([0-9]+)");
+    const std::regex pattern("\\\"" + key + "\\\"\\s*:\\s*([0-9]+)");
     std::smatch match;
     if (std::regex_search(json, match, pattern)) {
         return std::stoi(match[1].str());

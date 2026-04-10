@@ -25,6 +25,10 @@
 #include <functional>
 #include <thread>  // Requerido para std::thread::id y std::this_thread
 
+#ifdef ERROR
+#undef ERROR
+#endif
+
 namespace tp::shared {
 
 // Niveles de trazabilidad
@@ -32,7 +36,7 @@ enum class TraceLevel {
     DEBUG,      // Información detallada para desarrollo
     INFO,       // Información general del flujo
     WARNING,    // Advertencias
-    ERROR,      // Errores
+    ERR,        // Errores
     CRITICAL    // Errores críticos
 };
 

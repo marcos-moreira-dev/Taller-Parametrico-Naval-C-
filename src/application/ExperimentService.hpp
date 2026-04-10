@@ -133,9 +133,8 @@ public:
      * @brief Carga un experimento desde archivo
      * @param filepath Ruta al archivo de experimento
      * 
-     * @note Por implementar: requiere ScenarioLoader
      */
-    void loadExperiment(const std::string& filepath);
+    bool loadExperiment(const std::string& filepath);
     
     /**
      * @brief Guarda el experimento actual a archivo

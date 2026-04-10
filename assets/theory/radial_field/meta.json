@@ -5,5 +5,5 @@
   "difficulty": 3,
   "graphId": "radial_source",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "En un campo radial, las flechas apuntan hacia afuera o hacia adentro de un centro. Modela fuentes, sumideros o aproximaciones simplificadas de empuje alrededor de un punto."
+  "description": "Un campo radial es aquel en el que las flechas apuntan hacia fuera o hacia dentro respecto de un centro. Esa geometría aparece cuando una fuente emite flujo, cuando un sumidero lo absorbe o cuando quieres modelar una influencia que depende de la distancia al punto central. En el taller es una forma muy útil de visualizar zonas de atracción o repulsión."
 }

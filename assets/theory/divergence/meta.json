@@ -5,5 +5,5 @@
   "difficulty": 4,
   "graphId": "divergence_source",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "La divergencia mide si el flujo local se abre como una fuente o se cierra como un sumidero. En agua casi siempre idealizada como incompresible, se busca divergencia cercana a cero."
+  "description": "La divergencia responde a una pregunta local muy concreta: en una vecindad pequeña del punto, el flujo parece salir, entrar o compensarse? Si el valor es positivo, el campo se comporta como una fuente; si es negativo, como un sumidero; si es cercano a cero, no hay creación neta local de flujo. Este concepto es esencial para interpretar compresibilidad idealizada y conservación en modelos continuos."
 }

@@ -5,5 +5,5 @@
   "difficulty": 2,
   "graphId": "uniform_field",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "Un campo vectorial asigna una velocidad o una fuerza a cada punto del plano. En este taller representa la corriente que empuja al bote en cada posición."
+  "description": "Un campo vectorial es una regla que, a cada punto del plano, le asigna una flecha. Esa flecha resume dos ideas al mismo tiempo: dirección del flujo y magnitud de la intensidad. En el taller paramétrico esta noción es central porque la corriente del agua no se describe solo con palabras, sino como un campo que empuja al bote de manera distinta según la posición. Aprender a leer un campo vectorial permite anticipar desvíos, zonas de mayor arrastre y trayectorias que a simple vista no se intuyen."
 }

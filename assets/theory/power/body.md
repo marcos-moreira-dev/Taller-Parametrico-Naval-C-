@@ -1,23 +1,27 @@
 ## Idea central
 
-La potencia indica con qué rapidez el sistema puede cambiar su energía. Dos motores pueden ejercer la misma fuerza y, sin embargo, entregar distinta potencia si trabajan a distinta velocidad.
+La potencia indica qué tan rápido se transfiere energía. No solo importa cuánto empuja el motor, sino también con qué velocidad logra mover el bote.
 
-Por eso la potencia es una magnitud muy útil para comparar rendimiento real bajo condiciones de operación concretas.
+Por eso dos situaciones con la misma fuerza pueden tener potencias distintas si la rapidez cambia.
+
+La idea clave es que una fuerza grande a baja velocidad puede entregar menos potencia que una fuerza moderada a alta velocidad. Por eso fuerza y potencia no son sinónimos, aunque estén relacionadas.
 
 ## Ejercicio resuelto
 
-**Problema.** El motor entrega $$F=30\,\text{N}$$ en la dirección del movimiento y el bote navega a $$4\,\text{m/s}$$.
+**Problema.** El motor entrega una fuerza de [[MATHIMG:math/inline_b5db26898b31.png|30\,\text{N}]] en la dirección del movimiento y el bote navega a [[MATHIMG:math/inline_06b1853bace6.png|4\,\text{m/s}]].
 
-$$
-P = Fv = 30\cdot 4 = 120\,\text{W}
-$$
+**Solución.** La potencia es
 
-Si la velocidad baja a $$2\,\text{m/s}$$,
+![math](math/block_2cb5c16cac3a.png)
 
-$$
-P = 30\cdot 2 = 60\,\text{W}
-$$
+Si la velocidad baja a [[MATHIMG:math/inline_265fb103c2b6.png|2\,\text{m/s}]] con la misma fuerza, entonces
+
+![math](math/block_1085b87f126b.png)
 
 ## Qué observar en la simulación
 
-Una misma configuración de fuerza no siempre se traduce en la misma eficiencia. El entorno modifica cuánto rinde esa potencia.
+Compara escenarios con igual empuje y distinta velocidad. Verás que la potencia cambia aunque la fuerza aplicada sea la misma.
+
+## Dónde se usa
+
+Este concepto se usa en motores, propulsión naval, mecánica aplicada y análisis de eficiencia en sistemas de transporte.

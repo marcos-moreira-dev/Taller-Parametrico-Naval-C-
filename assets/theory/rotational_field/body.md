@@ -1,23 +1,27 @@
 ## Idea central
 
-En un campo rotacional el fluido no empuja hacia el centro, sino alrededor del centro. Por eso la trayectoria natural deja de ser una recta y empieza a curvarse.
+Un campo rotacional hace que las trayectorias tiendan a curvarse alrededor de un centro. Es la idealización matemática de un remolino.
 
-Esta geometría tangencial es la base conceptual de remolinos, vorticidad y circulación.
+Aquí la dirección del vector es tangencial a la circunferencia centrada en el vórtice.
+
+Aquí la intuición geométrica es muy poderosa: la flecha no apunta hacia el centro, sino tangencialmente al giro. Por eso el movimiento resultante se curva en vez de entrar directamente.
 
 ## Ejercicio resuelto
 
-**Problema.** Con centro en $$(25,25)$$ y $$\omega=0.1$$, calcular el campo en $$(35,25)$$.
+**Problema.** Con centro en [[MATHIMG:math/inline_ec49e049c292.png|(25,25)]] y [[MATHIMG:math/inline_fd668c0af35e.png|\omega=0.1]], calcula el campo en [[MATHIMG:math/inline_6236bf8699df.png|(35,25)]] y en [[MATHIMG:math/inline_800d88b88a6a.png|(25,35)]].
 
-$$
-\mathbf{V}(35,25)=0.1(0,10)=(0,1)
-$$
+**Solución.** En [[MATHIMG:math/inline_6236bf8699df.png|(35,25)]],
 
-En el punto $$(25,35)$$:
+![math](math/block_71d64781955b.png)
 
-$$
-\mathbf{V}(25,35)=0.1(-10,0)=(-1,0)
-$$
+En [[MATHIMG:math/inline_800d88b88a6a.png|(25,35)]],
+
+![math](math/block_0ec3dff153e8.png)
 
 ## Qué observar en la simulación
 
-En el remolino central, la curvatura de la trayectoria del bote no surge de un obstáculo, sino de la estructura del campo mismo.
+Carga un remolino y verifica que la trayectoria tienda a girar alrededor del centro en vez de escapar radialmente.
+
+## Dónde se usa
+
+Este patrón aparece en fluidos, meteorología simplificada, dinámica planar y estudios introductorios de vorticidad.

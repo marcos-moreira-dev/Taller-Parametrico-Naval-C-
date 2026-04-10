@@ -5,5 +5,5 @@
   "difficulty": 3,
   "graphId": "ode_parabola",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "La posición y la velocidad del bote cambian en el tiempo. Esas tasas de cambio se escriben como ecuaciones diferenciales ordinarias."
+  "description": "Una ecuación diferencial ordinaria describe cómo cambia una cantidad con respecto al tiempo. En un problema de navegación, esas cantidades suelen ser la posición, la velocidad o la aceleración. En otras palabras, una EDO no te entrega toda la trayectoria de una vez, sino la regla local que indica cómo se mueve el sistema instante tras instante. Ese enfoque encaja perfectamente con la simulación numérica, porque el software va avanzando en pequeños pasos."
 }

@@ -1,25 +1,25 @@
 ## Idea central
 
-El rotor puede entenderse como una lupa local sobre la rotación del flujo. Mientras la circulación observa una región completa, el rotor mide la tendencia de giro en un punto.
+El rotor, o curl, mide la tendencia local de un campo a inducir giro. No habla de salir o entrar, sino de rotar alrededor de un punto.
 
-Esta diferencia entre mirada local y global es importante para interpretar correctamente remolinos y vorticidad.
+Por eso se asocia naturalmente con remolinos y vórtices.
+
+Una interpretación útil es imaginar una paletita minúscula dentro del flujo. Si el campo tiende a hacerla girar, ahí hay rotor distinto de cero.
 
 ## Ejercicio resuelto
 
-**Problema.** Sea
+**Problema.** Para [[MATHIMG:math/inline_695a440bc1e3.png|\mathbf{V}(x,y)=(-0.5y,0.5x)]], calcula el rotor escalar en 2D.
 
-$$
-\mathbf{V}(x,y)=(-y,x)
-$$
+**Solución.**
 
-Entonces
+![math](math/block_49ef98a428db.png)
 
-$$
-\operatorname{curl}\,\mathbf{V}=\frac{\partial x}{\partial x}-\frac{\partial(-y)}{\partial y}=1-(-1)=2
-$$
-
-El rotor es positivo y constante, así que el flujo genera un giro antihorario uniforme.
+El valor positivo indica una rotación local en sentido antihorario.
 
 ## Qué observar en la simulación
 
-En un remolino, el rotor te ayuda a interpretar por qué la trayectoria curva incluso cuando el campo no apunta directamente al centro.
+En un remolino, la traza del bote tiende a doblarse alrededor del centro. Esa curvatura local está relacionada con el rotor.
+
+## Dónde se usa
+
+Se usa en fluidos, mecánica de medios continuos y cálculo vectorial para estudiar vorticidad y rotación local.

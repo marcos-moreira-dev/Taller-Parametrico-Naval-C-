@@ -1,19 +1,25 @@
 ## Idea central
 
-La integral de línea mide un efecto acumulado a lo largo de una ruta concreta. No pregunta solo dónde empieza o termina el movimiento, sino qué regiones atraviesa.
+La integral de línea acumula el efecto del campo a lo largo de una trayectoria. En este contexto sirve para medir trabajo o energía transferida durante un recorrido.
 
-Por eso es una herramienta puente entre geometría y física: convierte la forma de una trayectoria en una magnitud acumulada como trabajo o energía transferida.
+No basta con saber el campo en un punto: importa también por dónde se mueve el sistema.
+
+Aquí la trayectoria importa tanto como el campo. Cambiar el camino puede cambiar el trabajo total, incluso si los puntos inicial y final son los mismos.
 
 ## Ejercicio resuelto
 
-**Problema.** En un campo uniforme $$\mathbf{F}=(2,0)$$, mover el bote de $$(0,0)$$ a $$(5,0)$$.
+**Problema.** En un campo uniforme [[MATHIMG:math/inline_25555f2927a4.png|\mathbf{F}=(2,0)]], mueve el bote desde [[MATHIMG:math/inline_26c0ef502f75.png|(0,0)]] hasta [[MATHIMG:math/inline_22f11eb9206f.png|(5,0)]].
 
-$$
-W = \mathbf{F}\cdot d\mathbf{r} = (2,0)\cdot(5,0)=10\,\text{J}
-$$
+**Solución.** Como la trayectoria es horizontal y la fuerza apunta en la misma dirección,
 
-Si el desplazamiento fuera vertical, el trabajo sería cero porque el campo no tiene componente en esa dirección.
+![math](math/block_43a3b581d308.png)
+
+Si el desplazamiento fuera vertical, el producto punto sería cero y el trabajo también sería cero.
 
 ## Qué observar en la simulación
 
-Compara rutas que pasan por zonas distintas del flujo. La integral de línea explica por qué el efecto acumulado puede cambiar aunque los extremos parezcan parecidos.
+Compara una trayectoria alineada con la corriente con otra perpendicular. El efecto acumulado del campo cambia mucho.
+
+## Dónde se usa
+
+Se usa en mecánica, electromagnetismo, fluidos y cálculo vectorial cuando interesa el efecto acumulado a lo largo de una ruta.

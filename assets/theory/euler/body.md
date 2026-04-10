@@ -1,35 +1,33 @@
 ## Idea central
 
-Euler toma la pendiente actual y supone que esa tendencia se mantiene durante un intervalo corto $$h$$. Con esa hipótesis, avanza un paso en el tiempo.
+Euler toma la pendiente actual y supone que esa tendencia se mantiene durante un intervalo corto [[MATHIMG:math/inline_6e9356ec0bd2.png|h]]. Es el método más directo para avanzar una EDO en el tiempo.
 
-Es el método numérico más simple y por eso es perfecto para aprender. También es el más fácil de implementar. Su limitación es que la recta tangente local no siempre representa bien la curvatura real de la solución.
+Su valor didáctico es enorme: muestra con claridad cómo un algoritmo numérico convierte una derivada en una secuencia de aproximaciones.
+
+Su principal virtud es que hace visible la mecánica interna del algoritmo. Ves la pendiente, avanzas un paso y corriges en el siguiente. Su principal limitación es que, si el paso es grande o el sistema cambia rápido, el error se acumula con facilidad.
 
 ## Ejercicio resuelto
 
-**Problema.** Resolver
+**Problema.** Aproxima la solución de [[MATHIMG:math/inline_9c555466d438.png|y'=2]] con [[MATHIMG:math/inline_7130510c630d.png|y(0)=1]] y paso [[MATHIMG:math/inline_b9ee7a9743bb.png|h=0.5]] hasta [[MATHIMG:math/inline_e61619bb5913.png|t=1]].
 
-$$
-\frac{dv}{dt}=2,
-\qquad
-v(0)=1,
-\qquad
-h=0.5\,\text{s}
-$$
+**Solución.** Aplicamos
 
-**Paso 1**
+![math](math/block_fd56a6ad61af.png)
 
-$$
-v_1 = v_0 + h\cdot 2 = 1 + 0.5\cdot 2 = 2
-$$
+Primer paso:
 
-**Paso 2**
+![math](math/block_6fdb19698769.png)
 
-$$
-v_2 = v_1 + h\cdot 2 = 2 + 0.5\cdot 2 = 3
-$$
+Segundo paso:
 
-En este caso Euler coincide con la solución exacta porque la derivada es constante. En trayectorias curvadas esa coincidencia desaparece.
+![math](math/block_d56d1180751b.png)
+
+La aproximación en [[MATHIMG:math/inline_e61619bb5913.png|t=1]] es [[MATHIMG:math/inline_bc5db59a6e49.png|y(1)\approx 3]].
 
 ## Qué observar en la simulación
 
-Compara Euler con RK4 en un remolino: verás que el error de trayectoria crece mucho más rápido.
+Reduce el paso temporal y compara la trayectoria. Cuando [[MATHIMG:math/inline_6e9356ec0bd2.png|h]] es menor, el error acumulado suele disminuir.
+
+## Dónde se usa
+
+Euler se usa con fines didácticos, prototipos rápidos y como primera aproximación en cursos de métodos numéricos y simulación física.

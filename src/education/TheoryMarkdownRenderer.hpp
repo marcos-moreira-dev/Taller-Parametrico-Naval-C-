@@ -10,8 +10,8 @@ public:
 
 private:
     static std::string escapeHtml(const std::string& text);
+    static std::string escapeAttribute(const std::string& text);
     static std::string processInlineMarkup(const std::string& text);
-    static std::string latexToPlainText(std::string latex);
 };
 
 } // namespace tp::education

@@ -7,6 +7,7 @@
 
 #include <wx/wx.h>
 #include <wx/webview.h>
+#include <wx/scrolwin.h>
 
 namespace tp::presentation {
 
@@ -15,11 +16,11 @@ public:
     LatexBitmapPanel(wxWindow* parent, const wxString& latex = wxT(""));
 
     void setLatex(const wxString& latex);
+    void setImagePath(const wxString& path);
     void setForegroundColor(const wxColour& color);
 
 private:
     void refreshHtml();
-    void OnWebViewLoaded(wxWebViewEvent& event);
     wxString buildHtml() const;
     wxString normalizedLatex() const;
     int estimatedHeight() const;
@@ -28,8 +29,11 @@ private:
     static wxString cssColor(const wxColour& color);
 
     wxString latex_;
+    wxString imagePath_;
     wxColour color_;
+    wxScrolledWindow* imageScroll_;
     wxWebView* webView_;
+    wxStaticBitmap* imageCtrl_;
     wxTextCtrl* fallbackCtrl_;
 };
 

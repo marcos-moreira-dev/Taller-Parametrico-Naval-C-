@@ -2,14 +2,17 @@
 
 #include <wx/button.h>
 #include <wx/choice.h>
-#include <wx/filesys.h>
 #include <wx/filename.h>
+#include <wx/filesys.h>
+#include <wx/image.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/log.h>
 #include <wx/textctrl.h>
 
 #include <algorithm>
+#include <sstream>
 #include <set>
 
 namespace tp::presentation {
@@ -31,9 +34,55 @@ wxString NormalizeForSearch(wxString text) {
     return text;
 }
 
-wxString PathToUrl(const std::filesystem::path& path) {
-    wxFileName fn(wxString::FromUTF8(path.string().c_str()));
-    return wxFileSystem::FileNameToURL(fn);
+int CountMeaningfulLines(const std::string& text) {
+    int count = 0;
+    std::istringstream stream(text);
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.find_first_not_of(" \\t\\r\\n") != std::string::npos) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+int EstimateDescriptionHeight(const std::string& description) {
+    const int approxLines = std::max(2, static_cast<int>(description.size() / 90) + 1);
+    return std::max(140, 56 + approxLines * 34);
+}
+
+int EstimateBodyHeight(const std::string& bodyMarkdown, int minHeight = 440, int maxHeight = 1500) {
+    const int lines = CountMeaningfulLines(bodyMarkdown);
+    return std::clamp(220 + lines * 28, minHeight, maxHeight);
+}
+
+
+wxString TopicBaseUrl(const std::string& basePath) {
+    if (basePath.empty()) {
+        return wxEmptyString;
+    }
+    wxFileName fileName = wxFileName::DirName(wxString::FromUTF8(basePath.c_str()));
+    return wxFileSystem::FileNameToURL(fileName);
+}
+
+wxBitmap LoadScaledBitmap(const wxString& path, int maxWidth) {
+    if (path.IsEmpty() || !wxFileExists(path)) {
+        return wxBitmap();
+    }
+
+    wxLogNull suppressImageErrors;
+    wxImage image(path, wxBITMAP_TYPE_ANY);
+    if (!image.IsOk()) {
+        return wxBitmap();
+    }
+
+    if (image.GetWidth() > maxWidth && maxWidth > 0) {
+        const double scale = static_cast<double>(maxWidth) / static_cast<double>(image.GetWidth());
+        const int scaledHeight = std::max(1, static_cast<int>(image.GetHeight() * scale));
+        image = image.Scale(maxWidth, scaledHeight, wxIMAGE_QUALITY_HIGH);
+    }
+
+    return wxBitmap(image);
 }
 
 } // namespace
@@ -64,15 +113,18 @@ TheoryPanel::TheoryPanel(wxWindow* parent)
     , difficultyText_(nullptr)
     , descriptionHtml_(nullptr)
     , formulaPanel_(nullptr)
+    , formulaScroll_(nullptr)
     , formulaWidget_(nullptr)
-    , graphWidget_(nullptr)
+    , figurePanel_(nullptr)
+    , figureBitmap_(nullptr)
+    , figureCaptionHtml_(nullptr)
     , explanationHtml_(nullptr)
+    , exerciseHtml_(nullptr)
     , prevBtn_(nullptr)
     , nextBtn_(nullptr)
     , currentConceptIndex_(-1)
     , repository_()
-    , markdownRenderer_()
-    , htmlTemplate_(repository_.webRoot() / "theory_base.html") {
+    , markdownRenderer_() {
     SetBackgroundColour(wxColour(250, 250, 250));
     loadTopics();
     setupUI();
@@ -122,9 +174,13 @@ void TheoryPanel::rebuildConceptList() {
         titleText_->SetLabel(U(u8"Sin resultados"));
         categoryText_->SetLabel(wxEmptyString);
         difficultyText_->SetLabel(wxEmptyString);
-        descriptionHtml_->SetPage(U(u8"<html><body style='font-family:Segoe UI, Arial, sans-serif;'>No se encontraron conceptos con ese filtro.</body></html>"));
+        descriptionHtml_->setHtmlBody(U(u8"<p class='description-lead'>No se encontraron conceptos con ese filtro.</p>"));
         formulaWidget_->setLatex(wxEmptyString);
         explanationHtml_->setHtmlBody(U(u8"<p>Prueba otra categoría o una búsqueda más corta.</p>"));
+        exerciseHtml_->setHtmlBody(U(u8"<p>Cuando exista un ejercicio guiado para este tema aparecerá aquí.</p>"));
+        if (figurePanel_) {
+            figurePanel_->Hide();
+        }
         prevBtn_->Enable(false);
         nextBtn_->Enable(false);
         return;
@@ -210,39 +266,54 @@ void TheoryPanel::setupUI() {
     descLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
     contentSizer->Add(descLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
 
-    descriptionHtml_ = new wxHtmlWindow(contentPanel, wxID_ANY, wxDefaultPosition, wxSize(-1, 140));
-    contentSizer->Add(descriptionHtml_, 0, wxEXPAND | wxALL, 10);
+    descriptionHtml_ = new MathHtmlPanel(contentPanel);
+    descriptionHtml_->SetMinSize(wxSize(-1, 150));
+    contentSizer->Add(descriptionHtml_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
-    wxStaticText* formulaLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"FÓRMULA"));
+    wxStaticText* formulaLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"FÓRMULA PRINCIPAL"));
     formulaLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
     contentSizer->Add(formulaLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
 
     formulaPanel_ = new wxPanel(contentPanel);
-    formulaPanel_->SetBackgroundColour(wxColour(250, 250, 250));
-    formulaPanel_->SetMinSize(wxSize(-1, 250));
+    formulaPanel_->SetBackgroundColour(wxColour(248, 250, 253));
+    formulaPanel_->SetMinSize(wxSize(-1, 220));
     wxBoxSizer* formulaSizer = new wxBoxSizer(wxVERTICAL);
     formulaWidget_ = new LatexBitmapPanel(formulaPanel_, wxEmptyString);
     formulaWidget_->setForegroundColor(wxColour(0, 0, 128));
-    formulaSizer->Add(formulaWidget_, 1, wxALL | wxEXPAND, 10);
+    formulaSizer->Add(formulaWidget_, 1, wxEXPAND | wxALL, 0);
     formulaPanel_->SetSizer(formulaSizer);
-    contentSizer->Add(formulaPanel_, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
+    contentSizer->Add(formulaPanel_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
-    wxStaticText* graphLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"GRÁFICA DEL PROBLEMA"));
-    graphLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
-    contentSizer->Add(graphLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
+    wxStaticText* figureLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"FIGURA DE ESTUDIO"));
+    figureLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+    contentSizer->Add(figureLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
 
-    graphWidget_ = new MathGraph(contentPanel);
-    graphWidget_->SetMinSize(wxSize(-1, 500));
-    graphWidget_->setLabels(wxT("x"), wxT("y"));
-    contentSizer->Add(graphWidget_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+    figurePanel_ = new wxPanel(contentPanel);
+    figurePanel_->SetBackgroundColour(wxColour(251, 253, 255));
+    wxBoxSizer* figureSizer = new wxBoxSizer(wxVERTICAL);
+    figureBitmap_ = new wxStaticBitmap(figurePanel_, wxID_ANY, wxBitmap());
+    figureCaptionHtml_ = new MathHtmlPanel(figurePanel_);
+    figureCaptionHtml_->SetMinSize(wxSize(-1, 120));
+    figureSizer->Add(figureBitmap_, 0, wxALL | wxALIGN_CENTER_HORIZONTAL, 12);
+    figureSizer->Add(figureCaptionHtml_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+    figurePanel_->SetSizer(figureSizer);
+    contentSizer->Add(figurePanel_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
-    wxStaticText* explLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"DESARROLLO Y EJEMPLO"));
+    wxStaticText* explLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"DESARROLLO Y CONTEXTO"));
     explLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
     contentSizer->Add(explLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
 
     explanationHtml_ = new MathHtmlPanel(contentPanel);
-    explanationHtml_->SetMinSize(wxSize(-1, 980));
-    contentSizer->Add(explanationHtml_, 1, wxEXPAND | wxALL, 10);
+    explanationHtml_->SetMinSize(wxSize(-1, 760));
+    contentSizer->Add(explanationHtml_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
+
+    wxStaticText* exerciseLabel = new wxStaticText(contentPanel, wxID_ANY, U(u8"EJERCICIO GUIADO"));
+    exerciseLabel->SetFont(wxFont(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+    contentSizer->Add(exerciseLabel, 0, wxLEFT | wxRIGHT | wxTOP, 15);
+
+    exerciseHtml_ = new MathHtmlPanel(contentPanel);
+    exerciseHtml_->SetMinSize(wxSize(-1, 520));
+    contentSizer->Add(exerciseHtml_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
     wxBoxSizer* actionSizer = new wxBoxSizer(wxHORIZONTAL);
     prevBtn_ = new wxButton(contentPanel, ID_PREV_BTN, U(u8"◀ Anterior"));
@@ -271,10 +342,36 @@ void TheoryPanel::loadConcept(int index) {
     updateDisplay();
 }
 
-void TheoryPanel::updateGraphForTopic(const tp::education::TheoryTopic& topic) {
-    if (graphWidget_) {
-        TheoryGraphFactory::configure(*graphWidget_, topic.graphId);
+
+void TheoryPanel::updateFigureForTopic(const tp::education::TheoryTopic& topic) {
+    if (!figurePanel_ || !figureBitmap_ || !figureCaptionHtml_) {
+        return;
     }
+
+    if (topic.figureMainPath.empty()) {
+        figurePanel_->Hide();
+        return;
+    }
+
+    const wxBitmap bitmap = LoadScaledBitmap(toWx(topic.figureMainPath), 900);
+    if (!bitmap.IsOk()) {
+        figureBitmap_->SetBitmap(wxBitmap());
+        figureCaptionHtml_->setHtmlBody(U(u8"<div class='note-box'>No se pudo cargar la figura estática de este tema.</div>"));
+        figurePanel_->Show();
+        figurePanel_->Layout();
+        return;
+    }
+
+    figureBitmap_->SetBitmap(bitmap);
+    wxString captionHtml;
+    if (!topic.figureNoteMarkdown.empty()) {
+        captionHtml = toWx(markdownRenderer_.toHtml(topic.figureNoteMarkdown));
+    } else {
+        captionHtml = U(u8"<p>Figura estática generada como apoyo visual del tema.</p>");
+    }
+    figureCaptionHtml_->setHtmlBody(captionHtml, TopicBaseUrl(topic.contentBasePath));
+    figurePanel_->Show();
+    figurePanel_->Layout();
 }
 
 void TheoryPanel::updateDisplay() {
@@ -292,19 +389,33 @@ void TheoryPanel::updateDisplay() {
         topic.difficulty >= 4 ? wxT("★") : wxT("☆"),
         topic.difficulty >= 5 ? wxT("★") : wxT("☆")));
 
-    descriptionHtml_->SetPage(
-        wxT("<html><body style='font-family:Segoe UI, Arial, sans-serif; font-size:11pt; margin:8px; line-height:135%;'>") +
-        toWx(topic.description) +
-        wxT("</body></html>"));
+    const wxString topicBaseUrl = TopicBaseUrl(topic.contentBasePath);
 
+    descriptionHtml_->setHtmlBody(
+        wxT("<p class='description-lead'>") +
+        toWx(topic.description) +
+        wxT("</p>"), topicBaseUrl);
+    descriptionHtml_->SetMinSize(wxSize(-1, EstimateDescriptionHeight(topic.description)));
+
+    formulaWidget_->setImagePath(toWx(topic.formulaImagePath));
     formulaWidget_->setLatex(toWx(topic.formulaLatex));
 
     const std::string bodyHtml = markdownRenderer_.toHtml(topic.bodyMarkdown);
-    const std::string htmlDocument = htmlTemplate_.render(topic, bodyHtml);
-    const wxString baseUrl = PathToUrl(repository_.theoryTemplatePath());
-    explanationHtml_->setHtmlDocument(toWx(htmlDocument), baseUrl);
+    explanationHtml_->setHtmlBody(toWx(bodyHtml), topicBaseUrl);
+    explanationHtml_->SetMinSize(wxSize(-1, EstimateBodyHeight(topic.bodyMarkdown, 520, 1500)));
 
-    updateGraphForTopic(topic);
+    const std::string exerciseSource = topic.exerciseMarkdown.empty()
+        ? std::string("<div class='note-box'><p>Este tema todavía no tiene un ejercicio guiado separado. Por ahora se apoya en la explicación principal.</p></div>")
+        : markdownRenderer_.toHtml(topic.exerciseMarkdown);
+    exerciseHtml_->setHtmlBody(toWx(exerciseSource), topicBaseUrl);
+    exerciseHtml_->SetMinSize(wxSize(-1, EstimateBodyHeight(topic.exerciseMarkdown.empty() ? std::string("pendiente") : topic.exerciseMarkdown, 320, 900)));
+
+    updateFigureForTopic(topic);
+
+    if (auto* scrolled = wxDynamicCast(descriptionHtml_->GetParent(), wxScrolledWindow)) {
+        scrolled->Layout();
+        scrolled->FitInside();
+    }
 
     auto currentIt = std::find(filteredConceptIndices_.begin(), filteredConceptIndices_.end(), currentConceptIndex_);
     const bool hasCurrent = currentIt != filteredConceptIndices_.end();
@@ -369,65 +480,15 @@ void TheoryPanel::onPrevious(wxCommandEvent& event) {
     previousConcept();
 }
 
-/* ============================================================================
- * SECCIÓN: Implementación del Patrón Observer/Callback
- * ============================================================================
- * 
- * Esta sección demuestra un patrón de diseño fundamental en desarrollo de
- * software: el patrón Observer (también llamado Callback o Listener).
- * 
- * PROBLEMA:
- * TheoryPanel necesita notificar a alguien (MainWindow) cuando el usuario
- * quiere cargar un escenario desde la vista de teoría. Pero TheoryPanel
- * no debería depender directamente de MainWindow (acoplamiento fuerte).
- * 
- * SOLUCIÓN:
- * Usamos std::function como un contrato: "Yo te aviso cuando pase X, tú
- * decides qué hacer". MainWindow registra una función que se llamará.
- * 
- * BENEFICIOS:
- * 1. Desacoplamiento: TheoryPanel no sabe de MainWindow
- * 2. Testabilidad: Podemos probar TheoryPanel con mocks
- * 3. Reusabilidad: TheoryPanel funciona en cualquier contexto
- * 4. Cumple SOLID:
- *    - SRP: TheoryPanel solo maneja UI de teoría
- *    - DIP: Depende de abstracción (std::function), no de concreción
- * 
- * ============================================================================ */
-
 void TheoryPanel::setScenarioCallback(std::function<void(const wxString&)> callback) {
-    /**
-     * @internal Usamos std::move para transferir ownership del callable.
-     * Esto es una optimización: evita copiar la lambda si contiene capturas
-     * grandes (ej: [this] con objetos pesados).
-     * 
-     * Si callback es nullptr o vacío, std::function::operator= lo maneja
-     * correctamente: scenarioCallback_ queda en estado "vacío" (equivalente
-     * a nullptr para punteros a función tradicionales).
-     */
     scenarioCallback_ = std::move(callback);
 }
 
 bool TheoryPanel::requestScenarioLoad(const wxString& scenarioName) const {
-    /**
-     * @internal Verificación defensiva: std::function tiene operator bool
-     * que retorna false si no tiene un callable asignado. Esto es equivalente
-     * a verificar ptr != nullptr para punteros a función.
-     * 
-     * Este patrón de "verificar antes de llamar" es fundamental para evitar
-     * undefined behavior. En C++20 también podríamos usar std::observer_ptr
-     * para punteros observadores, pero para callbacks std::function es ideal.
-     */
     if (!scenarioCallback_) {
-        // No hay callback registrado - esto es válido, no es un error
-        // El panel puede funcionar independientemente de si alguien
-        // escucha las solicitudes de escenario o no
         return false;
     }
-    
-    // Invocamos el callback con el nombre del escenario
-    // La sintaxis es igual que llamar una función normal - esto es la
-    // magna de std::function: unifica la interfaz de cualquier callable
+
     scenarioCallback_(scenarioName);
     return true;
 }

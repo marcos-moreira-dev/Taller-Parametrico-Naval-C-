@@ -5,5 +5,5 @@
   "difficulty": 4,
   "graphId": "rotational_field",
   "relatedScenario": "2. Remolino central",
-  "description": "En un campo rotacional las flechas son tangenciales a circunferencias alrededor de un centro. Es el modelo más simple de un remolino 2D."
+  "description": "Un campo rotacional hace que las trayectorias tiendan a girar alrededor de una zona central. Es un modelo excelente para remolinos ideales, vorticidad simplificada o movimientos circulares inducidos por el entorno. En simulación es muy pedagógico porque muestra de inmediato cómo una regla local del campo puede producir curvas envolventes o espirales."
 }

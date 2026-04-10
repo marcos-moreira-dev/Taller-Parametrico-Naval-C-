@@ -5,5 +5,5 @@
   "difficulty": 2,
   "graphId": "energy_curve",
   "relatedScenario": "1. Río con corriente uniforme",
-  "description": "El motor entrega trabajo positivo, el arrastre suele hacer trabajo negativo y la corriente puede sumar o quitar energía al sistema según la trayectoria."
+  "description": "La energía cinética y el trabajo conectan la fuerza con el cambio de movimiento. Cuando una fuerza hace avanzar al bote a lo largo de una trayectoria, transfiere energía al sistema. Este tema es importante porque permite interpretar el movimiento no solo desde aceleraciones instantáneas, sino también desde balances energéticos. Es una segunda mirada del mismo fenómeno físico."
 }

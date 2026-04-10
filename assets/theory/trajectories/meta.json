@@ -5,5 +5,5 @@
   "difficulty": 3,
   "graphId": "parametric_curve",
   "relatedScenario": "2. Remolino central",
-  "description": "Una trayectoria es una curva paramétrica. El tiempo no se dibuja en el plano, pero organiza el orden en que el vehículo visita cada punto."
+  "description": "Una trayectoria es la huella geométrica que deja el movimiento en el plano. Cuando la escribes como curva paramétrica, cada coordenada depende del tiempo y el recorrido adquiere orden, dirección y velocidad asociadas. En el taller, este enfoque es natural porque el simulador no “dibuja una curva” de golpe, sino que genera puntos sucesivos a medida que avanza el tiempo."
 }

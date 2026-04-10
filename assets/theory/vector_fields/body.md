@@ -1,37 +1,29 @@
 ## Idea central
 
-Un campo vectorial es una regla local: a cada punto del plano le asigna un vector. En la simulación eso significa que el bote no siente “todo el río” al mismo tiempo, sino la corriente exactamente en la zona donde está.
+Un campo vectorial asigna una velocidad o una fuerza a cada punto del plano. En este taller lo usamos para representar la corriente que empuja al bote en cada posición.
 
-Si el campo cambia de una región a otra, la trayectoria cambia aunque el empuje del motor no se modifique. Esta es la razón por la que una embarcación puede acelerar, frenar o desviar su rumbo al entrar en una franja de agua distinta.
+Leer un campo no consiste solo en mirar flechas. También implica interpretar dos cosas: hacia dónde apunta el flujo y qué tan intensa es su magnitud.
 
-## Lectura mecánica
-
-- La **dirección** del vector indica hacia dónde empuja el fluido.
-- La **magnitud** indica cuán intensa es la corriente.
-- La variación espacial del campo explica por qué el movimiento puede deformarse al cambiar de zona.
+Además de mirar la orientación de las flechas, conviene leer la longitud o intensidad con la misma seriedad. Una flecha casi horizontal pero muy intensa puede dominar la trayectoria del bote aunque el motor esté apuntando en otra dirección. Por eso, en aplicaciones reales, interpretar un campo vectorial es una mezcla de geometría, intuición física y lectura de magnitudes.
 
 ## Ejercicio resuelto
 
-**Problema.** Una lancha está en $$(x,y)=(10,25)$$ dentro de un río uniforme con $$\mathbf{V}=(2,0)\,\text{m/s}$$. El piloto genera una velocidad propia relativa al agua de $$\mathbf{v}_p=(3,1)\,\text{m/s}$$.
+**Problema.** En el punto [[MATHIMG:math/inline_42b06a4434fd.png|(10,25)]] la corriente vale [[MATHIMG:math/inline_23b294fd5786.png|\mathbf{V}=(2,0)\,\text{m/s}]] y la embarcación genera respecto al agua [[MATHIMG:math/inline_cd8e4612d4a7.png|\mathbf{v}_p=(3,1)\,\text{m/s}]].
 
-**Solución.** La velocidad respecto del suelo es
+**Solución.** La velocidad respecto al suelo es
 
-$$
-\mathbf{v}_{\text{total}} = \mathbf{v}_p + \mathbf{V} = (3,1) + (2,0) = (5,1)
-$$
+![math](math/block_fc67ecbbb81c.png)
 
-La rapidez vale
+La rapidez queda
 
-$$
-\lVert\mathbf{v}_{\text{total}}\rVert = \sqrt{5^2+1^2} = \sqrt{26} \approx 5.10\,\text{m/s}
-$$
+![math](math/block_fc087196a51f.png)
 
-El ángulo de deriva es
-
-$$
-\theta = \operatorname{atan2}(1,5) \approx 11.3^\circ
-$$
+La componente horizontal aumenta por la corriente y la vertical se mantiene positiva. Por eso el bote avanza hacia la derecha con una pequeña desviación hacia arriba.
 
 ## Qué observar en la simulación
 
-Cambia el tipo de campo y observa cómo la orientación del bote deja de coincidir con la dirección real de avance.
+Cambia la intensidad del campo y mira cómo las flechas pasan de tonos fríos a tonos más claros. Luego compara la orientación del bote con la dirección real de la trayectoria.
+
+## Dónde se usa
+
+Este tipo de modelo aparece en introducciones de mecánica de fluidos, navegación fluvial y simulación básica de transporte. Sirve para entender primero el efecto de una corriente simple antes de pasar a campos más complejos.

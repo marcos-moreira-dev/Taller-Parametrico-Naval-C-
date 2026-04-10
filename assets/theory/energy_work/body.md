@@ -1,31 +1,31 @@
 ## Idea central
 
-Trabajo y energía ofrecen una lectura escalar de la dinámica. Mientras las fuerzas muestran causas vectoriales, la energía resume si el sistema gana o pierde capacidad de movimiento.
+La energía cinética mide cuánta energía tiene el bote por moverse. El trabajo mide cuánta energía transfieren las fuerzas al sistema durante un desplazamiento.
 
-Eso permite interpretar el comportamiento global del bote sin inspeccionar cada fuerza a cada instante.
+Cuando el trabajo neto es positivo, la energía cinética aumenta.
+
+Pensar en términos de energía ayuda mucho cuando las fuerzas cambian a lo largo de la ruta. En vez de seguir cada detalle local, puedes estudiar cuánto trabajo acumulado se convirtió en rapidez.
 
 ## Ejercicio resuelto
 
-**Problema.** Un bote de $$10\,\text{kg}$$ pasa de $$2\,\text{m/s}$$ a $$4\,\text{m/s}$$.
+**Problema.** Un bote de [[MATHIMG:math/inline_86911872ecf0.png|10\,\text{kg}]] pasa de [[MATHIMG:math/inline_265fb103c2b6.png|2\,\text{m/s}]] a [[MATHIMG:math/inline_06b1853bace6.png|4\,\text{m/s}]].
 
-La energía inicial es
+**Solución.** La energía inicial es
 
-$$
-E_i = \frac{1}{2}\cdot 10 \cdot 2^2 = 20\,\text{J}
-$$
+![math](math/block_e61c88291308.png)
 
 La energía final es
 
-$$
-E_f = \frac{1}{2}\cdot 10 \cdot 4^2 = 80\,\text{J}
-$$
+![math](math/block_f88af392c5e3.png)
 
 Por tanto,
 
-$$
-\Delta E_k = 60\,\text{J}
-$$
+![math](math/block_e26393e38339.png)
 
 ## Qué observar en la simulación
 
-Relaciona empuje, arrastre y rapidez con la energía cinética mostrada en resultados. Verás cuándo el sistema gana o pierde capacidad de avance.
+Aumenta el empuje y nota cómo el bote gana velocidad. Ese aumento se refleja en la energía cinética mostrada en los resultados.
+
+## Dónde se usa
+
+Se usa en mecánica clásica, diseño de máquinas, dinámica vehicular y análisis energético de procesos físicos.

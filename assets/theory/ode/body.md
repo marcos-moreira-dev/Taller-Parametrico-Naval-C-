@@ -1,37 +1,31 @@
 ## Idea central
 
-Una ecuación diferencial no dibuja la trayectoria completa de una sola vez. Lo que hace es describir la ley de cambio instantáneo del sistema. La simulación transforma esa ley en movimiento visible integrando paso a paso.
+Una ecuación diferencial ordinaria describe cómo cambia una magnitud con el tiempo. En navegación puede representar posición, velocidad o aceleración cuando el sistema evoluciona paso a paso.
 
-En el bote, la posición cambia según la velocidad y la velocidad cambia según las fuerzas. Esa cadena de dependencias es exactamente lo que expresa un sistema de EDO.
+En este proyecto las EDO aparecen cuando el estado del bote se actualiza a partir de fuerzas y velocidades.
+
+Cuando trabajas con EDO, lo importante no es memorizar una forma cerrada en todos los casos, sino entender qué significa la derivada dentro del fenómeno. Si la derivada de la posición es la velocidad y la derivada de la velocidad depende de la fuerza total, entonces cada paso del simulador tiene una interpretación física clara.
 
 ## Ejercicio resuelto
 
-**Problema.** Una lancha de masa $$m=10\,\text{kg}$$ recibe una fuerza neta constante $$\mathbf{F}=(20,0)\,\text{N}$$ y parte del reposo.
+**Problema.** Una lancha de masa [[MATHIMG:math/inline_86911872ecf0.png|10\,\text{kg}]] recibe una fuerza neta constante [[MATHIMG:math/inline_99ef9ae25404.png|\mathbf{F}=(20,0)\,\text{N}]] y parte del reposo.
 
-**Solución.** La aceleración es
+**Solución.** Por segunda ley de Newton,
 
-$$
-\mathbf{a}=\frac{\mathbf{F}}{m}=(2,0)\,\text{m/s}^2
-$$
+![math](math/block_cd73d1440c5d.png)
 
-La velocidad queda
+Entonces la velocidad evoluciona como
 
-$$
-\mathbf{v}(t)=(2t,0)
-$$
+![math](math/block_d2d38c98b76d.png)
 
-La posición es
+Y la posición, si [[MATHIMG:math/inline_053143a9ff95.png|\mathbf{r}(0)=(0,0)]], queda
 
-$$
-x(t)=t^2
-$$
-
-Para $$t=3\,\text{s}$$,
-
-$$
-\mathbf{v}(3)=(6,0), \qquad x(3)=9
-$$
+![math](math/block_b88d8f1fa3d1.png)
 
 ## Qué observar en la simulación
 
-El método numérico no cambia la física del modelo, pero sí la forma en que esa ley diferencial se aproxima en la computadora.
+Cuando la fuerza es constante, la separación entre puntos sucesivos de la trayectoria crece con el tiempo. Esa es la huella visual de la aceleración.
+
+## Dónde se usa
+
+Las EDO se usan en mecánica, control, dinámica de vehículos, robótica y modelado de sistemas físicos donde el estado evoluciona en el tiempo.

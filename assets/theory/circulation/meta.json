@@ -5,5 +5,5 @@
   "difficulty": 5,
   "graphId": "circulation_loop",
   "relatedScenario": "2. Remolino central",
-  "description": "La circulación es la integral de línea de un campo alrededor de una curva cerrada. Mide la tendencia global del flujo a rodear una región."
+  "description": "La circulación mide cuánto acompaña un campo al recorrer una curva cerrada. Si el flujo tiende a “seguir” el contorno, la circulación será apreciable; si empuja más bien de forma transversal o si los aportes se cancelan, el valor puede ser pequeño. Este concepto es una puerta de entrada a la relación entre circulación, giro local y comportamiento global del campo."
 }

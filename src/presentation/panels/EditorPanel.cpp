@@ -211,7 +211,7 @@ void EditorPanel::setupUI() {
     sizeBox->Add(sizeGrid, 0, wxEXPAND | wxALL, 5);
     
     wxBoxSizer* btnSizer = new wxBoxSizer(wxHORIZONTAL);
-    wxButton* btnNew = new wxButton(scenarioPanel, ID_NEW_SCENARIO, wxT("Nuevo"));
+    wxButton* btnNew = new wxButton(scenarioPanel, ID_NEW_SCENARIO, wxT("Guardar como..."));
     wxButton* btnResize = new wxButton(scenarioPanel, ID_RESIZE_SCENARIO, wxT("Redimensionar"));
     btnSizer->Add(btnNew, 1, wxRIGHT, 5);
     btnSizer->Add(btnResize, 1);
@@ -501,23 +501,13 @@ void EditorPanel::applyFieldControlsToConfig() {
 
 void EditorPanel::onNewScenario(wxCommandEvent& event) {
     (void)event;
-    int width = widthCtrl_ ? widthCtrl_->GetValue() : 50;
-    int height = heightCtrl_ ? heightCtrl_->GetValue() : 50;
     wxString name = nameCtrl_ ? nameCtrl_->GetValue() : wxT("Nuevo Escenario");
 
-    commitScenarioChange([&](tp::application::ExperimentConfig& config) {
-        config.scenario = tp::domain::Scenario(width, height);
-        config.scenario.setName(std::string(name.ToUTF8()));
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                config.scenario.setCell(x, y, tp::shared::CellType::Water);
-            }
-        }
-        config.boat.setPosition(tp::shared::Vec2d(width / 2.0, height / 2.0));
-        config.boat.setOrientation(0.0);
-    });
-
     if (mainWindow_) {
+        if (auto* config = currentConfig()) {
+            config->scenario.setName(std::string(name.ToUTF8()));
+            mainWindow_->getScenarioDocument().notifyChanged();
+        }
         mainWindow_->setScenarioName(name);
         mainWindow_->setModified(true);
         mainWindow_->requestSaveScenario();

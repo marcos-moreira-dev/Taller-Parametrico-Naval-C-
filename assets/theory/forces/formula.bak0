@@ -1,4 +1,0 @@
-\begin{aligned}
-\mathbf{F}_{\text{total}} &= \mathbf{F}_{\text{motor}} + \mathbf{F}_{\text{arrastre}} + \mathbf{F}_{\text{campo}} \\
-\mathbf{v}_{\text{suelo}} &= \mathbf{v}_{\text{relativa}} + \mathbf{V}_{\text{corriente}}
-\end{aligned}

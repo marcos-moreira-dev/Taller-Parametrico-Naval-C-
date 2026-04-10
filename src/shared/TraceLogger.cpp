@@ -38,7 +38,7 @@ std::string TraceEntry::toString() const {
         case TraceLevel::DEBUG: oss << " [DEBUG]"; break;
         case TraceLevel::INFO: oss << " [INFO]"; break;
         case TraceLevel::WARNING: oss << " [WARN]"; break;
-        case TraceLevel::ERROR: oss << " [ERROR]"; break;
+        case TraceLevel::ERR: oss << " [ERROR]"; break;
         case TraceLevel::CRITICAL: oss << " [CRIT]"; break;
     }
     
@@ -74,7 +74,7 @@ std::string TraceEntry::toJson() const {
         case TraceLevel::DEBUG: oss << "\"DEBUG\""; break;
         case TraceLevel::INFO: oss << "\"INFO\""; break;
         case TraceLevel::WARNING: oss << "\"WARNING\""; break;
-        case TraceLevel::ERROR: oss << "\"ERROR\""; break;
+        case TraceLevel::ERR: oss << "\"ERROR\""; break;
         case TraceLevel::CRITICAL: oss << "\"CRITICAL\""; break;
     }
     oss << ",";
@@ -268,7 +268,7 @@ void TraceLogger::warning(TraceEventType type, const std::string& comp,
 
 void TraceLogger::error(TraceEventType type, const std::string& comp,
                         const std::string& action, const std::string& details) {
-    log(TraceLevel::ERROR, type, comp, action, details);
+    log(TraceLevel::ERR, type, comp, action, details);
 }
 
 void TraceLogger::critical(TraceEventType type, const std::string& comp,
@@ -394,7 +394,7 @@ void TraceLogger::exportToCsv(const std::string& filename) {
             case TraceLevel::DEBUG: file << "DEBUG"; break;
             case TraceLevel::INFO: file << "INFO"; break;
             case TraceLevel::WARNING: file << "WARNING"; break;
-            case TraceLevel::ERROR: file << "ERROR"; break;
+            case TraceLevel::ERR: file << "ERROR"; break;
             case TraceLevel::CRITICAL: file << "CRITICAL"; break;
         }
         file << ",";

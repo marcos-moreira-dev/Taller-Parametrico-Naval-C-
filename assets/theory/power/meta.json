@@ -5,5 +5,5 @@
   "difficulty": 2,
   "graphId": "power_curve",
   "relatedScenario": "7. Efecto Venturi",
-  "description": "La potencia mide cuán rápido el motor transfiere energía mecánica al sistema. Es clave para comparar rendimiento a favor o en contra del flujo."
+  "description": "La potencia propulsiva mide la rapidez con que el motor transfiere energía mecánica al bote. No basta con saber que hay fuerza: también importa a qué velocidad se realiza el trabajo. Por eso la potencia es una medida de rendimiento muy útil cuando comparas situaciones con igual empuje pero distinta rapidez. En navegación y en ingeniería, hablar de potencia es hablar de capacidad efectiva para sostener el movimiento."
 }

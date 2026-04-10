@@ -1,19 +1,27 @@
 ## Idea central
 
-La circulación es una magnitud global. Resume el giro neto del flujo alrededor de una región completa y no se limita a observar un solo punto.
+La circulación mide el efecto total del campo cuando recorremos una curva cerrada. Es una forma de saber si el flujo tiende a empujar alrededor del contorno.
 
-Por eso aparece de forma natural al estudiar remolinos, estelas y sustentación aerodinámica.
+En un remolino ideal, la circulación suele ser distinta de cero.
+
+La idea intuitiva es recorrer la curva preguntando, en cada tramo, cuánto ayuda o se opone el campo al movimiento tangencial. La suma acumulada de esos aportes da la circulación.
 
 ## Ejercicio resuelto
 
-**Problema.** Para un campo tangencial ideal de magnitud constante $$2\,\text{m/s}$$ sobre una circunferencia de radio $$3\,\text{m}$$:
+**Problema.** Sobre una circunferencia de radio [[MATHIMG:math/inline_c24bd59f54d7.png|3\,\text{m}]] actúa un campo tangencial ideal de magnitud constante [[MATHIMG:math/inline_265fb103c2b6.png|2\,\text{m/s}]].
 
-$$
-\Gamma = |F|\cdot 2\pi r = 2\cdot 2\pi\cdot 3 = 12\pi
-$$
+**Solución.** La longitud del contorno es
 
-Cuanto mayor es el remolino, mayor es la circulación alrededor del contorno.
+![math](math/block_6181fd854438.png)
+
+Como el campo es tangencial y constante,
+
+![math](math/block_999a7906ed80.png)
 
 ## Qué observar en la simulación
 
-En el escenario de remolino, imagina una curva cerrada alrededor del centro. La circulación mide el acompañamiento promedio del flujo a lo largo de todo ese contorno.
+Carga un flujo rotacional y recorre mentalmente una curva cerrada alrededor del centro. Ahí aparece la idea de circulación acumulada.
+
+## Dónde se usa
+
+Se emplea en fluidos, aerodinámica, cálculo vectorial y formulaciones introductorias de teoremas integrales.

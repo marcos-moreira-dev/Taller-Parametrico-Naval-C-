@@ -50,7 +50,7 @@ if(BUILD_GUI)
             ${wxWidgets_LIBRARIES}
     )
     
-    target_compile_definitions(TallerParametrico PRIVATE _ssize_t=long)
+    target_compile_definitions(TallerParametrico PRIVATE _ssize_t=long TP_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
     
     set_target_properties(TallerParametrico PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

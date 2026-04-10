@@ -3,125 +3,145 @@
 #include <wx/filesys.h>
 #include <wx/filename.h>
 #include <wx/sizer.h>
-#include <wx/textctrl.h>
+#include <wx/textfile.h>
 
 namespace tp::presentation {
 
 namespace {
-
-wxString LocalTheoryBaseUrl() {
+wxString defaultWebBaseUrl() {
 #ifdef TP_SOURCE_DIR
-    wxFileName path(wxString::FromUTF8(TP_SOURCE_DIR));
-    path.AppendDir(wxT("assets"));
-    path.AppendDir(wxT("web"));
-    path.SetFullName(wxT("theory_base.html"));
-    return wxFileSystem::FileNameToURL(path);
+    wxFileName fileName(wxString::FromUTF8(TP_SOURCE_DIR));
+    fileName.AppendDir("assets");
+    fileName.AppendDir("web");
+    return wxFileSystem::FileNameToURL(fileName);
 #else
-    return wxString();
+    wxFileName fileName(wxFileName::DirName(wxGetCwd()));
+    return wxFileSystem::FileNameToURL(fileName);
 #endif
 }
 
+wxString assetsWebDir() {
+#ifdef TP_SOURCE_DIR
+    wxFileName fileName(wxString::FromUTF8(TP_SOURCE_DIR));
+    fileName.AppendDir("assets");
+    fileName.AppendDir("web");
+    return fileName.GetFullPath();
+#else
+    wxFileName fileName(wxGetCwd(), wxEmptyString);
+    return fileName.GetFullPath();
+#endif
+}
+
+wxString loadTextFile(const wxString& fullPath) {
+    wxTextFile file;
+    if (!file.Open(fullPath)) {
+        return wxEmptyString;
+    }
+    wxString content;
+    for (size_t i = 0; i < file.GetLineCount(); ++i) {
+        content += file.GetLine(i);
+        if (i + 1 < file.GetLineCount()) {
+            content += "\n";
+        }
+    }
+    return content;
+}
+
+wxString inlineScriptSafe(const wxString& text) {
+    wxString out = text;
+    out.Replace("</script", "</scr" "ipt", true);
+    return out;
+}
 }
 
 MathHtmlPanel::MathHtmlPanel(wxWindow* parent, const wxString& htmlBody)
     : wxPanel(parent, wxID_ANY)
     , htmlBody_(htmlBody)
-    , baseUrl_(wxString())
+    , baseUrl_(defaultWebBaseUrl())
     , htmlIsDocument_(false)
-    , webView_(nullptr)
-    , fallbackCtrl_(nullptr) {
+    , htmlWindow_(nullptr)
+    , webView_(nullptr) {
     SetBackgroundColour(*wxWHITE);
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    webView_ = wxWebView::New(this, wxID_ANY, wxString(), wxDefaultPosition, wxDefaultSize, wxWebViewBackendEdge);
-
+    webView_ = wxWebView::New(this, wxID_ANY);
     if (webView_) {
         sizer->Add(webView_, 1, wxEXPAND);
-        refreshPage();
-    } else {
-        fallbackCtrl_ = new wxTextCtrl(this, wxID_ANY, wxEmptyString,
-                                       wxDefaultPosition, wxDefaultSize,
-                                       wxTE_MULTILINE | wxTE_READONLY | wxBORDER_NONE);
-        fallbackCtrl_->SetBackgroundColour(*wxWHITE);
-        sizer->Add(fallbackCtrl_, 1, wxEXPAND | wxALL, 6);
-        fallbackCtrl_->SetValue(htmlBody_);
     }
 
+    htmlWindow_ = new wxHtmlWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                   wxHW_SCROLLBAR_AUTO | wxBORDER_NONE);
+    htmlWindow_->SetBorders(0);
+    htmlWindow_->SetBackgroundColour(*wxWHITE);
+    if (webView_) {
+        htmlWindow_->Hide();
+    }
+    sizer->Add(htmlWindow_, 1, wxEXPAND);
+
     SetSizer(sizer);
+    refreshPage();
 }
 
 void MathHtmlPanel::setHtmlBody(const wxString& htmlBody) {
     htmlBody_ = htmlBody;
-    baseUrl_.clear();
     htmlIsDocument_ = false;
+    if (baseUrl_.IsEmpty()) {
+        baseUrl_ = defaultWebBaseUrl();
+    }
+    refreshPage();
+}
+
+void MathHtmlPanel::setHtmlBody(const wxString& htmlBody, const wxString& baseUrl) {
+    htmlBody_ = htmlBody;
+    htmlIsDocument_ = false;
+    baseUrl_ = baseUrl.IsEmpty() ? defaultWebBaseUrl() : baseUrl;
     refreshPage();
 }
 
 void MathHtmlPanel::setHtmlDocument(const wxString& htmlDocument, const wxString& baseUrl) {
     htmlBody_ = htmlDocument;
-    baseUrl_ = baseUrl;
+    baseUrl_ = baseUrl.IsEmpty() ? defaultWebBaseUrl() : baseUrl;
     htmlIsDocument_ = true;
     refreshPage();
 }
 
 wxString MathHtmlPanel::buildHtmlDocument() const {
-    return wxString::Format(
-        "<!DOCTYPE html>"
-        "<html>"
-        "<head>"
-        "<meta charset='utf-8'>"
-        "<meta http-equiv='X-UA-Compatible' content='IE=edge'>"
-        "<link rel='stylesheet' href='katex/katex.min.css'>"
-        "<script defer src='katex/katex.min.js'></script>"
-        "<script defer src='katex/auto-render.min.js'></script>"
-        "<style>"
-        "html,body{margin:0;padding:0;background:#ffffff;color:#1f2a37;font-family:'Segoe UI',Arial,sans-serif;}"
-        "body{padding:10px 14px 18px 14px;line-height:1.55;font-size:15px;}"
-        "p{margin:0 0 12px 0;}"
-        "ul,ol{margin:0 0 14px 18px;padding-left:18px;}"
-        "li{margin:0 0 8px 0;}"
-        "code{font-family:'Cascadia Mono','Consolas',monospace;background:#f3f7fb;padding:2px 5px;border-radius:4px;}"
-        "pre{font-family:'Cascadia Mono','Consolas',monospace;background:#f7fbff;padding:10px;border-radius:8px;overflow:auto;}"
-        "h4{margin:0 0 10px 0;font-size:17px;color:#16324f;}"
-        ".theory-box{background:#ffffff;border:1px solid #d6dde8;border-radius:10px;padding:12px 14px;margin:10px 0;}"
-        ".example-box{background:#eefaf0;border:1px solid #cae7d0;border-radius:10px;padding:12px 14px;margin:12px 0;}"
-        ".note-box{background:#fff7ea;border:1px solid #f0d7a6;border-radius:10px;padding:12px 14px;margin:12px 0;}"
-        ".math-inline{font-size:1.02em;}"
-        ".katex-display{margin:0.65em 0;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;text-align:left !important;}"
-        ".katex-display > .katex{text-align:left !important;display:inline-block;}"
-        "</style>"
-        "</head>"
-        "<body>%s"
-        "<script>"
-        "window.addEventListener('load', function(){"
-        "  if(window.renderMathInElement){"
-        "    renderMathInElement(document.body,{"
-        "      delimiters:["
-        "        {left:'$$', right:'$$', display:true},"
-        "        {left:'\\\\[', right:'\\\\]', display:true},"
-        "        {left:'\\\\(', right:'\\\\)', display:false},"
-        "        {left:'$', right:'$', display:false}"
-        "      ],"
-        "      throwOnError:false"
-        "    });"
-        "  }"
-        "});"
-        "</script>"
-        "</body>"
-        "</html>",
-        htmlBody_);
+    wxString html;
+    html << "<!doctype html><html lang='es'><head><meta charset='utf-8'>"
+         << "<meta http-equiv='X-UA-Compatible' content='IE=edge'>"
+         << "<base href='" << (baseUrl_.IsEmpty() ? defaultWebBaseUrl() : baseUrl_) << "' />"
+         << "<style>"
+         << "\nhtml,body{margin:0;padding:0;background:#fff;color:#1f2a37;font-family:Segoe UI,Arial,sans-serif;overflow:auto;}"
+         << "body{padding:14px 18px 20px 18px;line-height:1.6;font-size:15px;}"
+         << "p{margin:0 0 10px 0;}h2{margin:0 0 12px 0;color:#16324f;font-size:20px;}h3{margin:18px 0 10px 0;color:#16324f;font-size:16px;}h4{margin:14px 0 8px 0;color:#16324f;font-size:15px;}"
+         << "ul,ol{margin:0 0 12px 22px;}li{margin-bottom:6px;}code{font-family:Consolas,Cascadia Mono,monospace;background:#f3f7fb;padding:2px 5px;border-radius:4px;}"
+         << "pre{font-family:Cambria Math,Consolas,monospace;background:#f7fbff;border:1px solid #dde8f6;padding:10px 12px;border-radius:10px;white-space:pre-wrap;}"
+         << "blockquote,.note-box{margin:12px 0;padding:12px 14px;background:#fff7ea;border-left:4px solid #e4b85f;border-radius:8px;color:#51432a;}"
+         << ".description-lead{font-size:18px;line-height:1.72;color:#17365d;}"
+         << ".math-block{margin:14px 0;padding:12px 16px;background:#f7fbff;border:1px solid #dde8f6;border-radius:10px;overflow-x:auto;}"
+         << ".math-block pre{margin:0;background:transparent;border:none;padding:0;white-space:pre-wrap;font-family:Cambria Math,Times New Roman,serif;color:#17365d;font-size:18px;}"
+         << "figure.theory-figure{margin:16px auto;text-align:center;} figure.theory-figure img{max-width:100%;height:auto;border-radius:10px;} figure.theory-figure figcaption{margin-top:8px;color:#5b6773;font-size:13px;}"
+         << "img.inline-math-img{display:inline-block;vertical-align:-0.14em;height:1.38em;width:auto;margin:0 0.12em;} .math-image-block{padding:6px 10px;overflow-x:auto;} .block-math-img{display:block;max-width:min(88%,680px);max-height:112px;width:auto;height:auto;margin:0 auto;}"
+         << "</style>"
+         << "</head><body>"
+         << htmlBody_
+         << "</body></html>";
+    return html;
 }
 
 void MathHtmlPanel::refreshPage() {
+    const wxString html = htmlIsDocument_ ? htmlBody_ : buildHtmlDocument();
+    const wxString base = baseUrl_.IsEmpty() ? defaultWebBaseUrl() : baseUrl_;
+
     if (webView_) {
-        if (htmlIsDocument_) {
-            webView_->SetPage(htmlBody_, baseUrl_);
-        } else {
-            webView_->SetPage(buildHtmlDocument(), LocalTheoryBaseUrl());
-        }
-    } else if (fallbackCtrl_) {
-        fallbackCtrl_->SetValue(htmlBody_);
+        webView_->Show();
+        htmlWindow_->Hide();
+        webView_->SetPage(html, base);
+    } else if (htmlWindow_) {
+        htmlWindow_->Show();
+        htmlWindow_->SetPage(html);
     }
+    Layout();
 }
 
 } // namespace tp::presentation

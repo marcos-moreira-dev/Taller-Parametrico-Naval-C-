@@ -4,7 +4,7 @@
  * @file MainWindow.hpp
  * @brief Ventana principal de la aplicación Taller Paramétrico
  * @author Proyecto Taller Paramétrico
- * @version 0.2.3
+ * @version 1.1.0
  * 
  * Punto central de la aplicación wxWidgets que:
  * - Gestiona el layout AUI (paneles flotantes)
@@ -75,8 +75,10 @@ public:
     Water3DCanvas* getCanvas3D() const { return canvas3D_; }
     void openCustomFieldDialog();
     void requestSimulationReset();
-    void requestSaveScenario();
+    bool requestSaveScenario();
     void requestLoadScenario();
+    bool requestReloadCurrentScenarioFile();
+    void requestLoadScenarioPreset(size_t index);
     
     // Acceso al servicio de experimentos
     tp::application::ExperimentService& getExperimentService() { return experimentService_; }
@@ -116,12 +118,8 @@ private:
     void setupStatusBar();
     void refreshStatusBar();
     void syncViewMenuChecks();
+    bool saveScenarioWithDialog();
     
-    // Crear paneles
-    wxPanel* createWelcomePanel();
-    void createTheoryPanel();
-    void createSimulationPanel();
-    void createEditorPanel();
     
     // Eventos de menú y toolbar
     void onNew(wxCommandEvent& event);
@@ -233,160 +231,4 @@ private:
     wxDECLARE_EVENT_TABLE();
 };
 
-// Panel izquierdo: Navegación y escenarios
-class LeftPanel : public wxPanel {
-public:
-    LeftPanel(wxWindow* parent, MainWindow* mainWindow);
-    
-    void updateScenarioList();
-    int getSelectedScenarioIndex() const;
-    void applyLayerVisibility();
-    void setFieldLayerVisible(bool visible);
-    
-private:
-    void createNavigationSection();
-    void createScenariosSection();
-    void createLayersSection();
-    
-    void onModeSelect(wxCommandEvent& event);
-    void onScenarioSelect(wxCommandEvent& event);
-    void onLoadScenario(wxCommandEvent& event);
-    void onLayerToggle(wxCommandEvent& event);
-    
-    MainWindow* mainWindow_;
-    
-    wxNotebook* notebook_;
-    wxListBox* scenarioList_;
-    wxCheckListBox* layerList_;
-    wxRadioBox* modeSelector_;
-    
-    wxDECLARE_EVENT_TABLE();
-};
-
-// Panel derecho: Inspector de propiedades
-class RightPanel : public wxPanel {
-public:
-    RightPanel(wxWindow* parent, MainWindow* mainWindow);
-    
-    void updateProperties();
-    void showBoatProperties();
-    void showMotorProperties();
-    void showFieldProperties();
-    void showScenarioProperties();
-    
-    // Obtener valores actuales para actualización en tiempo real
-    double getThrustValue() const;
-    double getDirectionValue() const;
-    int getFieldType() const;
-    double getFieldIntensity() const;
-    int getMethod() const;
-    double getTimeStep() const;
-    bool isAutoThrustEnabled() const { return autoThrustCheck_ ? autoThrustCheck_->GetValue() : false; }
-    
-private:
-    void createBoatSection();
-    void createMotorSection();
-    void createFieldSection();
-    void createNumericalSection();
-    
-    void onBoatParamChange(wxSpinEvent& event);
-    void onMotorParamChange(wxCommandEvent& event);
-    void onFieldTypeChange(wxCommandEvent& event);
-    void onFieldParamChange(wxCommandEvent& event);
-    void onNumericalParamChange(wxCommandEvent& event);
-    void onDurationChange(wxSpinEvent& event);
-    
-    // Actualizar configuración desde UI
-    void updateBoatFromUI();
-    void updateMotorFromUI();
-    void updateFieldFromUI();
-    void updateNumericalFromUI();
-    void syncFieldControlsFromConfig();
-    void updateFieldControlAvailability();
-    void refreshScenePreview(bool syncProperties = false);
-    
-    MainWindow* mainWindow_;
-    wxNotebook* notebook_;
-    
-    // Controles del bote
-    wxSpinCtrl* massCtrl_;
-    wxSpinCtrl* dragCtrl_;
-    wxSpinCtrl* sizeCtrl_;
-    wxSpinCtrl* initialXCtrl_;
-    wxSpinCtrl* initialYCtrl_;
-    wxSpinCtrl* initialAngleCtrl_;
-    
-    // Controles del motor
-    wxSlider* thrustSlider_;
-    wxSlider* directionSlider_;
-    wxStaticText* thrustValueText_;
-    wxStaticText* directionValueText_;
-    wxCheckBox* autoThrustCheck_;
-    
-    // Controles del campo
-    wxChoice* fieldTypeChoice_;
-    wxSlider* fieldIntensitySlider_;
-    wxStaticText* fieldIntensityValue_;
-    wxSpinCtrl* fieldCenterXCtrl_;
-    wxSpinCtrl* fieldCenterYCtrl_;
-    wxButton* customFieldEditBtn_;
-    
-    // Controles numéricos
-    wxChoice* methodChoice_;
-    wxSlider* dtSlider_;
-    wxSpinCtrl* durationCtrl_;
-    
-    wxDECLARE_EVENT_TABLE();
-};
-
-// Panel inferior: Pestañas de resultados
-class BottomPanel : public wxPanel {
-public:
-    BottomPanel(wxWindow* parent, MainWindow* mainWindow);
-    
-    void updateResults();
-    void addEvent(const wxString& message);
-    void clearEvents();
-    void clearGraphs();
-    void setActiveTab(int tabIndex);
-    
-private:
-    void createResultsTab();
-    void createGraphsTab();
-    void createEventsTab();
-    void createTheoryTab();
-    void createComparisonTab();
-    
-    MainWindow* mainWindow_;
-    
-    wxNotebook* notebook_;
-    
-    // Tab Resultados
-    wxStaticText* timeText_;
-    wxStaticText* speedText_;
-    wxStaticText* energyText_;
-    wxStaticText* distanceText_;
-    wxStaticText* collisionsText_;
-    wxStaticText* displacementText_;
-    wxStaticText* efficiencyText_;
-    
-    // Tab Gráficas
-    SimpleGraph* speedGraph_;
-    SimpleGraph* energyGraph_;
-    SimpleGraph* positionGraph_;
-    
-    // Tab Eventos
-    wxListBox* eventsList_;
-    
-    // Tab Teoría
-    wxStaticText* theoryTitle_;
-    wxStaticText* theoryContent_;
-    wxStaticText* theoryFormula_;
-    
-    // Tab Comparación
-    wxStaticText* comparisonText_;
-    
-    wxDECLARE_EVENT_TABLE();
-};
-
-}
+} // namespace tp::presentation
